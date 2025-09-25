@@ -1,7 +1,8 @@
-import { User, CreateUserData, UpdateUserData, UserRole } from "@/types/auth";
+import type { User, CreateUserData, UpdateUserData} from "@/types/auth";
+import { UserRole } from "@/types/auth";
 
 // Mock database - replace with actual database implementation
-let users: User[] = [
+const users: User[] = [
   {
     id: "1",
     email: "admin@example.com",

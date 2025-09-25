@@ -1,6 +1,7 @@
-import { FullConfig } from '@playwright/test'
 import fs from 'fs'
 import path from 'path'
+
+import type { FullConfig } from '@playwright/test'
 
 async function globalTeardown(config: FullConfig) {
   console.log('🧹 Starting global E2E test teardown...')

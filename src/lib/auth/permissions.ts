@@ -1,9 +1,10 @@
+import type {
+  User,
+  PermissionResult,
+  PermissionContext} from "@/types/auth";
 import {
   Permission,
   UserRole,
-  User,
-  PermissionResult,
-  PermissionContext,
   DEFAULT_ROLE_PERMISSIONS,
   ROLE_HIERARCHY,
 } from "@/types/auth";
@@ -23,7 +24,7 @@ export async function hasPermission(
   permission: Permission,
   context?: Record<string, any>
 ): Promise<boolean> {
-  if (!user || !user.isActive) {
+  if (!user?.isActive) {
     return false;
   }
 
@@ -38,7 +39,7 @@ export async function hasAnyPermission(
   user: User | null,
   permissions: Permission[]
 ): Promise<boolean> {
-  if (!user || !user.isActive) {
+  if (!user?.isActive) {
     return false;
   }
 
@@ -57,7 +58,7 @@ export async function hasAllPermissions(
   user: User | null,
   permissions: Permission[]
 ): Promise<boolean> {
-  if (!user || !user.isActive) {
+  if (!user?.isActive) {
     return false;
   }
 

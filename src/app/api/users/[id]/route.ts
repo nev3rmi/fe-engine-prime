@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from "next/server"
+import type { NextRequest} from "next/server";
+import { NextResponse } from "next/server"
+
+import { getUserById, updateUser, deleteUser, canDeleteUser } from "@/lib/auth/user-service"
 import { withAuth } from "@/lib/middleware/auth"
 import { Permission, UserRole } from "@/types/auth"
-import { getUserById, updateUser, deleteUser, canDeleteUser } from "@/lib/auth/user-service"
 
 /**
  * GET /api/users/[id] - Get user by ID

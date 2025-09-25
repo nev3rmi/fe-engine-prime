@@ -1,19 +1,8 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Textarea } from '@/components/ui/textarea';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useChat, useChatHistory } from '@/lib/hooks/use-chat';
-import { usePresence } from '@/lib/hooks/use-presence';
-import { ChatMessage, NewChatMessage, MessageType } from '@/types/realtime';
-import { cn } from '@/lib/utils';
+
+import { formatDistanceToNow } from 'date-fns';
 import {
   Send,
   MoreHorizontal,
@@ -28,7 +17,20 @@ import {
   CheckCheck,
   AlertCircle,
 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { useChat, useChatHistory } from '@/lib/hooks/use-chat';
+import { usePresence } from '@/lib/hooks/use-presence';
+import { cn } from '@/lib/utils';
+import type { ChatMessage, NewChatMessage, MessageType } from '@/types/realtime';
+
 
 interface ChatComponentProps {
   channelId: string;
@@ -65,7 +67,7 @@ interface TypingIndicatorProps {
  * Typing indicator component
  */
 const TypingIndicator: React.FC<TypingIndicatorProps> = ({ users }) => {
-  if (users.length === 0) return null;
+  if (users.length === 0) {return null;}
 
   const names = users.map(u => u.name || 'Unknown').filter(Boolean);
   let text = '';
@@ -294,7 +296,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSend = async () => {
-    if (!message.trim()) return;
+    if (!message.trim()) {return;}
 
     const newMessage: NewChatMessage = {
       content: message.trim(),
@@ -328,7 +330,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
     const textarea = textareaRef.current;
     if (textarea) {
       textarea.style.height = 'auto';
-      textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 120)  }px`;
     }
 
     // Typing indicator
@@ -477,7 +479,7 @@ export const Chat: React.FC<ChatComponentProps> = ({
           <ScrollArea ref={scrollAreaRef} className="flex-1 px-0">
             {isLoading && (
               <div className="flex items-center justify-center p-4">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
               </div>
             )}
 

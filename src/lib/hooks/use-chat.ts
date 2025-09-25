@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+
 import { getSocket, joinRoom, leaveRoom } from '@/lib/realtime/client';
-import {
+import type {
   UseChatReturn,
   ChatMessage,
   NewChatMessage,
   OnlineUser,
 } from '@/types/realtime';
+
 import { useDebounce } from './use-debounce';
 
 /**
@@ -25,7 +27,7 @@ export const useChat = (channelId: string): UseChatReturn => {
   // Initialize socket and join channel
   useEffect(() => {
     const socket = getSocket();
-    if (!socket) return;
+    if (!socket) {return;}
 
     socketRef.current = socket;
     setIsLoading(true);
@@ -205,7 +207,7 @@ export const useMessageReactions = (messageId: string) => {
 
   useEffect(() => {
     const socket = getSocket();
-    if (!socket) return;
+    if (!socket) {return;}
 
     // Listen for reaction updates
     socket.on('message:reaction', ({ messageId: reactionMessageId, reactions: updatedReactions }) => {
@@ -259,14 +261,14 @@ export const useMessageReactions = (messageId: string) => {
 /**
  * Hook for chat message history
  */
-export const useChatHistory = (channelId: string, limit: number = 50) => {
+export const useChatHistory = (channelId: string, limit = 50) => {
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   const loadHistory = useCallback(async (before?: string): Promise<void> => {
     const socket = getSocket();
-    if (!socket || isLoadingHistory) return;
+    if (!socket || isLoadingHistory) {return;}
 
     setIsLoadingHistory(true);
 

@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+
 import { useSession } from 'next-auth/react';
+
 import {
   createSocketConnection,
   getSocket,
@@ -10,7 +12,7 @@ import {
   getPerformanceMetrics,
   initializeRealtimeConfig,
 } from '@/lib/realtime/client';
-import {
+import type {
   UseRealtimeReturn,
   AuthenticatedUser,
   RealtimeConfig,

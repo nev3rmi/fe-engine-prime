@@ -1,7 +1,10 @@
-import { NextRequest, NextResponse } from "next/server"
+import type { NextRequest} from "next/server";
+import { NextResponse } from "next/server"
+
 import { auth } from "@/lib/auth"
 import { hasPermission, checkPermission } from "@/lib/auth/permissions"
-import { Permission, User, PermissionContext } from "@/types/auth"
+import type { User, PermissionContext } from "@/types/auth";
+import { Permission } from "@/types/auth"
 
 /**
  * Authentication middleware options
@@ -294,7 +297,7 @@ export const authRoutes = {
  */
 export function matchesPath(path: string, patterns: string[]): boolean {
   return patterns.some(pattern => {
-    const regex = new RegExp("^" + pattern.replace(/\*/g, ".*") + "$")
+    const regex = new RegExp(`^${  pattern.replace(/\*/g, ".*")  }$`)
     return regex.test(path)
   })
 }

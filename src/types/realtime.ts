@@ -1,4 +1,4 @@
-import { User, UserRole, Permission } from './auth';
+import type { User, UserRole, Permission } from './auth';
 
 // Socket.io event types
 export interface ServerToClientEvents {

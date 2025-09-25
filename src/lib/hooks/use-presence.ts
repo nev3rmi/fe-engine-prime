@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+
 import { getSocket } from '@/lib/realtime/client';
-import {
+import type {
   UsePresenceReturn,
   OnlineUser,
   PresenceStatus,
@@ -19,7 +20,7 @@ export const usePresence = (): UsePresenceReturn => {
 
   useEffect(() => {
     const socket = getSocket();
-    if (!socket) return;
+    if (!socket) {return;}
 
     socketRef.current = socket;
 
@@ -223,7 +224,7 @@ export const useRoomPresence = (roomId: string) => {
 
   useEffect(() => {
     const socket = getSocket();
-    if (!socket) return;
+    if (!socket) {return;}
 
     // Join room for presence tracking
     socket.emit('room:join', roomId, (success: boolean) => {

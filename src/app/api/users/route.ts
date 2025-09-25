@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from "next/server"
+import type { NextRequest} from "next/server";
+import { NextResponse } from "next/server"
+
+import { getUsers } from "@/lib/auth/user-service"
 import { withAuth } from "@/lib/middleware/auth"
 import { Permission } from "@/types/auth"
-import { getUsers } from "@/lib/auth/user-service"
 
 /**
  * GET /api/users - Get all users (with pagination and filtering)

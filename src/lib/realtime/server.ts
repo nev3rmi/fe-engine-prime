@@ -1,22 +1,25 @@
-import { Server as HTTPServer } from 'http';
-import { Server as SocketIOServer, Socket } from 'socket.io';
-import { NextApiRequest } from 'next';
+
 import { getToken } from 'next-auth/jwt';
-import {
+import { Server as SocketIOServer } from 'socket.io';
+
+
+
+import { hasPermission } from '@/lib/auth/permissions';
+import { getUserById } from '@/lib/auth/user-service';
+import type { Permission } from '@/types/auth';
+import type {
   ServerToClientEvents,
   ClientToServerEvents,
   InterServerEvents,
   SocketData,
-  AuthenticatedUser,
   OnlineUser,
   PresenceStatus,
   ChatMessage,
   NewChatMessage,
-  RealtimeNotification,
-} from '@/types/realtime';
-import { getUserById } from '@/lib/auth/user-service';
-import { hasPermission } from '@/lib/auth/permissions';
-import { Permission } from '@/types/auth';
+  RealtimeNotification} from '@/types/realtime';
+
+import type { Server as HTTPServer } from 'http';
+import type { Socket } from 'socket.io';
 
 // Global socket server instance
 let io: SocketIOServer<
@@ -74,13 +77,13 @@ export const initializeSocketServer = (server: HTTPServer): SocketIOServer => {
         secret: process.env.NEXTAUTH_SECRET,
       });
 
-      if (!decoded || !decoded.userId) {
+      if (!decoded?.userId) {
         return next(new Error('Invalid authentication token'));
       }
 
       // Get user details from database
       const user = await getUserById(decoded.userId as string);
-      if (!user || !user.isActive) {
+      if (!user?.isActive) {
         return next(new Error('User not found or inactive'));
       }
 
@@ -441,7 +444,7 @@ const handleEditMessage = async (
       const messageIndex = messages.findIndex(m => m.id === messageId);
       if (messageIndex > -1) {
         const message = messages[messageIndex];
-        if (!message) return false;
+        if (!message) {return false;}
 
         // Check if user can edit (author or has permission)
         if (message.authorId !== socket.data.userId &&
@@ -488,7 +491,7 @@ const handleDeleteMessage = async (
       const messageIndex = messages.findIndex(m => m.id === messageId);
       if (messageIndex > -1) {
         const message = messages[messageIndex];
-        if (!message) return false;
+        if (!message) {return false;}
 
         // Check if user can delete (author or has permission)
         if (message.authorId !== socket.data.userId &&
@@ -597,7 +600,7 @@ const cleanupInactiveUsers = () => {
  * Broadcast data synchronization
  */
 export const broadcastDataSync = (dataType: string, data: any, userId?: string) => {
-  if (!io) return;
+  if (!io) {return;}
 
   const syncData = {
     type: dataType,
@@ -614,7 +617,7 @@ export const broadcastDataSync = (dataType: string, data: any, userId?: string) 
  * Update widget data
  */
 export const updateWidget = (widgetId: string, data: any) => {
-  if (!io) return;
+  if (!io) {return;}
 
   io.to(`widget:${widgetId}`).emit('widget:update', widgetId, {
     data,
@@ -629,7 +632,7 @@ export const sendSystemNotification = (
   notification: Omit<RealtimeNotification, 'id' | 'userId' | 'isRead' | 'createdAt'>,
   targetUsers?: string[]
 ) => {
-  if (!io) return;
+  if (!io) {return;}
 
   if (targetUsers) {
     targetUsers.forEach(userId => createNotification(userId, notification));

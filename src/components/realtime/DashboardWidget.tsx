@@ -1,19 +1,13 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useWidgetSync, useDataSync, useOptimisticDataSync } from '@/lib/hooks/use-data-sync';
-import { cn } from '@/lib/utils';
+import React, { useCallback } from 'react';
+
+import { formatDistanceToNow } from 'date-fns';
 import {
   RefreshCw,
   TrendingUp,
   TrendingDown,
   Activity,
-  Users,
   MessageSquare,
   BarChart3,
   PieChart,
@@ -24,7 +18,15 @@ import {
   Wifi,
   WifiOff,
 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useWidgetSync } from '@/lib/hooks/use-data-sync';
+import { cn } from '@/lib/utils';
+
 
 interface BaseWidgetProps {
   widgetId: string;

@@ -1,31 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-
-// Import realtime components
-import { Chat } from './Chat';
-import { PresenceIndicator, OnlineUsersList, PresenceCard, PresenceCounter } from './PresenceIndicator';
-import { MetricWidget, ActivityWidget, ChartWidget, WidgetGrid } from './DashboardWidget';
-import { NotificationBell, NotificationPanel, NotificationDropdown, NotificationPermissionBanner } from './NotificationSystem';
-
-// Import hooks
-import { useRealtime, useConnectionStatus } from '@/lib/hooks/use-realtime';
-import { usePresence } from '@/lib/hooks/use-presence';
-import { useNotifications, useNotificationSender } from '@/lib/hooks/use-notifications';
-import { getRealtimeSystemHealth } from '@/lib/realtime';
 
 import {
   Activity,
   MessageSquare,
   Users,
   Bell,
-  BarChart3,
   Wifi,
   WifiOff,
   AlertCircle,
@@ -36,6 +17,27 @@ import {
   Database,
   Monitor,
 } from 'lucide-react';
+
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+// Import realtime components
+import { useNotifications, useNotificationSender } from '@/lib/hooks/use-notifications';
+import { usePresence } from '@/lib/hooks/use-presence';
+import { useRealtime, useConnectionStatus } from '@/lib/hooks/use-realtime';
+import { getRealtimeSystemHealth } from '@/lib/realtime';
+
+import { Chat } from './Chat';
+import { MetricWidget, ActivityWidget, ChartWidget, WidgetGrid } from './DashboardWidget';
+import { NotificationBell, NotificationPanel, NotificationPermissionBanner } from './NotificationSystem';
+import { PresenceIndicator, OnlineUsersList, PresenceCard, PresenceCounter } from './PresenceIndicator';
+
+// Import hooks
+
 
 /**
  * Connection status indicator

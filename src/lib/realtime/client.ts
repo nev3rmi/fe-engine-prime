@@ -1,12 +1,17 @@
-import { io, Socket } from 'socket.io-client';
-import {
+import { getSession } from 'next-auth/react';
+import { io } from 'socket.io-client';
+
+import type {
   ServerToClientEvents,
   ClientToServerEvents,
   AuthenticatedUser,
   RealtimeConfig,
   PerformanceMetrics,
 } from '@/types/realtime';
-import { getSession } from 'next-auth/react';
+
+import type { Socket } from 'socket.io-client';
+
+
 
 // Default configuration
 const DEFAULT_CONFIG: RealtimeConfig = {

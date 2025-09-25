@@ -1,13 +1,16 @@
 "use client"
 
+import { useEffect, useState } from "react"
+
+import { Moon, Sun, Monitor, Palette } from "lucide-react"
+import { useTheme } from "next-themes"
+
 import { ThemeToggle, SimpleThemeToggle } from "@/components/theme-toggle"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { useTheme } from "next-themes"
-import { Moon, Sun, Monitor, Palette } from "lucide-react"
-import { useEffect, useState } from "react"
+
 
 export default function ThemeDemo() {
   const { theme, setTheme, themes } = useTheme()

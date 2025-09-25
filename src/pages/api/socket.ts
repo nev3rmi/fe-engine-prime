@@ -1,7 +1,9 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { Server as HTTPServer } from 'http';
-import { Server as SocketIOServer } from 'socket.io';
 import { initializeSocketServer, getSocketServer } from '@/lib/realtime/server';
+
+import type { Server as HTTPServer } from 'http';
+import type { NextApiRequest, NextApiResponse } from 'next';
+import type { Server as SocketIOServer } from 'socket.io';
+
 
 // Type for the extended response with socket server
 type NextApiResponseWithSocket = NextApiResponse & {

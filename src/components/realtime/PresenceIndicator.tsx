@@ -1,14 +1,16 @@
 'use client';
 
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Card, CardContent } from '@/components/ui/card';
-import { usePresence, useUserPresence } from '@/lib/hooks/use-presence';
-import { OnlineUser, PresenceStatus } from '@/types/realtime';
-import { UserRole } from '@/types/auth';
-import { cn } from '@/lib/utils';
 import { Circle, Users } from 'lucide-react';
+
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { usePresence, useUserPresence } from '@/lib/hooks/use-presence';
+import { cn } from '@/lib/utils';
+import { UserRole } from '@/types/auth';
+import type { OnlineUser, PresenceStatus } from '@/types/realtime';
+
 
 interface PresenceIndicatorProps {
   userId: string;

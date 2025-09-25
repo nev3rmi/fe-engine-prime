@@ -1,9 +1,12 @@
 "use client"
 
-import { useSession } from "next-auth/react"
 import { useCallback, useMemo } from "react"
-import { User, Permission, UserRole } from "@/types/auth"
+
+import { useSession } from "next-auth/react"
+
 import { hasPermission, hasAnyPermission, hasAllPermissions } from "@/lib/auth/permissions"
+import type { User, Permission} from "@/types/auth";
+import { UserRole } from "@/types/auth"
 
 /**
  * Custom hook for authentication and authorization
@@ -25,7 +28,7 @@ export function useAuth() {
   // Permission checking functions
   const checkPermission = useCallback(
     async (permission: Permission): Promise<boolean> => {
-      if (!user) return false
+      if (!user) {return false}
       return await hasPermission(user, permission)
     },
     [user]
@@ -33,7 +36,7 @@ export function useAuth() {
 
   const checkAnyPermission = useCallback(
     async (permissions: Permission[]): Promise<boolean> => {
-      if (!user) return false
+      if (!user) {return false}
       return await hasAnyPermission(user, permissions)
     },
     [user]
@@ -41,7 +44,7 @@ export function useAuth() {
 
   const checkAllPermissions = useCallback(
     async (permissions: Permission[]): Promise<boolean> => {
-      if (!user) return false
+      if (!user) {return false}
       return await hasAllPermissions(user, permissions)
     },
     [user]
@@ -50,7 +53,7 @@ export function useAuth() {
   // Role hierarchy checks
   const hasRoleOrHigher = useCallback(
     (role: UserRole): boolean => {
-      if (!user) return false
+      if (!user) {return false}
 
       const roleHierarchy = {
         [UserRole.USER]: 1,
@@ -98,13 +101,13 @@ export function useAuth() {
 /**
  * Hook for permission-based component rendering
  */
-export function usePermissions(requiredPermissions: Permission[], requireAll: boolean = true) {
+export function usePermissions(requiredPermissions: Permission[], requireAll = true) {
   const { user, checkPermission, checkAnyPermission, checkAllPermissions } = useAuth()
 
   const checkFunction = requireAll ? checkAllPermissions : checkAnyPermission
 
   const hasPermissions = useMemo(async () => {
-    if (!user || requiredPermissions.length === 0) return true
+    if (!user || requiredPermissions.length === 0) {return true}
     return await checkFunction(requiredPermissions)
   }, [user, requiredPermissions, requireAll, checkFunction])
 
@@ -122,7 +125,7 @@ export function useRole(allowedRoles: UserRole[]) {
   const { user, role, isLoading } = useAuth()
 
   const hasRole = useMemo(() => {
-    if (!user || !role) return false
+    if (!user || !role) {return false}
     return allowedRoles.includes(role)
   }, [user, role, allowedRoles])
 

@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
+
 import { auth } from "@/lib/auth"
-import { authRoutes, matchesPath, getRoutePermissions } from "@/lib/middleware/auth"
 import { hasAllPermissions } from "@/lib/auth/permissions"
-import { User } from "@/types/auth"
+import { authRoutes, matchesPath, getRoutePermissions } from "@/lib/middleware/auth"
+import type { User } from "@/types/auth"
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname

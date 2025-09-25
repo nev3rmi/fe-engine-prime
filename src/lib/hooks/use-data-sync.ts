@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+
 import { getSocket, subscribeToData, unsubscribeFromData, subscribeToWidget, unsubscribeFromWidget } from '@/lib/realtime/client';
-import { SyncData, WidgetData } from '@/types/realtime';
+import type { SyncData, WidgetData } from '@/types/realtime';
 
 /**
  * Hook for real-time data synchronization
@@ -22,7 +23,7 @@ export const useDataSync = <T = any>(dataType: string, filters?: any) => {
 
   useEffect(() => {
     const socket = getSocket();
-    if (!socket) return;
+    if (!socket) {return;}
 
     socketRef.current = socket;
     setIsLoading(true);
@@ -73,7 +74,7 @@ export const useDataSync = <T = any>(dataType: string, filters?: any) => {
 
   const refreshData = useCallback(() => {
     const socket = getSocket();
-    if (!socket) return;
+    if (!socket) {return;}
 
     setIsLoading(true);
     setError(null);
@@ -93,7 +94,7 @@ export const useDataSync = <T = any>(dataType: string, filters?: any) => {
 
   const updateData = useCallback((newData: Partial<T>) => {
     const socket = getSocket();
-    if (!socket) return Promise.resolve(false);
+    if (!socket) {return Promise.resolve(false);}
 
     return new Promise<boolean>((resolve) => {
       socket.emit('data:update', {
@@ -135,7 +136,7 @@ export const useWidgetSync = <T = any>(widgetId: string, refreshRate?: number) =
 
   useEffect(() => {
     const socket = getSocket();
-    if (!socket) return;
+    if (!socket) {return;}
 
     socketRef.current = socket;
     setIsLoading(true);
@@ -189,7 +190,7 @@ export const useWidgetSync = <T = any>(widgetId: string, refreshRate?: number) =
 
   const refreshWidget = useCallback(() => {
     const socket = getSocket();
-    if (!socket) return;
+    if (!socket) {return;}
 
     setIsLoading(true);
     setError(null);
@@ -208,7 +209,7 @@ export const useWidgetSync = <T = any>(widgetId: string, refreshRate?: number) =
 
   const updateWidget = useCallback((newData: Partial<T>) => {
     const socket = getSocket();
-    if (!socket) return Promise.resolve(false);
+    if (!socket) {return Promise.resolve(false);}
 
     return new Promise<boolean>((resolve) => {
       socket.emit('widget:update_data', widgetId, newData, (success: boolean) => {
@@ -245,7 +246,7 @@ export const useMultiDataSync = () => {
 
   useEffect(() => {
     const socket = getSocket();
-    if (!socket) return;
+    if (!socket) {return;}
 
     socketRef.current = socket;
 
@@ -273,7 +274,7 @@ export const useMultiDataSync = () => {
 
   const subscribe = useCallback((dataType: string, filters?: any) => {
     const socket = getSocket();
-    if (!socket) return Promise.resolve(false);
+    if (!socket) {return Promise.resolve(false);}
 
     subscribeToData(dataType, filters);
 

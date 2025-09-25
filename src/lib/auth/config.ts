@@ -1,12 +1,14 @@
-import { NextAuthConfig } from "next-auth";
+import Discord from "next-auth/providers/discord";
 import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
-import Discord from "next-auth/providers/discord";
-import { JWT } from "next-auth/jwt";
-import { Session, User as NextAuthUser } from "next-auth";
-import { UserRole, Permission, User } from "@/types/auth";
-import { getUserById, createUser, updateUser } from "@/lib/auth/user-service";
+
+
 import { getRolePermissions } from "@/lib/auth/permissions";
+import { getUserById, createUser, updateUser } from "@/lib/auth/user-service";
+import type { UserRole, Permission } from "@/types/auth";
+
+import type { NextAuthConfig , Session, User as NextAuthUser } from "next-auth";
+import type { JWT } from "next-auth/jwt";
 
 export const config = {
   pages: {
@@ -63,7 +65,7 @@ export const config = {
         }
 
         // Check if user exists in database
-        let existingUser = await getUserById(user.id!);
+        const existingUser = await getUserById(user.id!);
 
         if (!existingUser) {
           // Create new user with default role
@@ -129,9 +131,9 @@ export const config = {
 
     async redirect({ url, baseUrl }) {
       // Allows relative callback URLs
-      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      if (url.startsWith("/")) {return `${baseUrl}${url}`;}
       // Allows callback URLs on the same origin
-      else if (new URL(url).origin === baseUrl) return url;
+      else if (new URL(url).origin === baseUrl) {return url;}
       return baseUrl;
     },
   },

@@ -1,20 +1,8 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
-import { useNotifications, useNotificationPermissions, useNotificationSounds, useFilteredNotifications } from '@/lib/hooks/use-notifications';
-import { RealtimeNotification, NotificationType, NotificationPriority } from '@/types/realtime';
-import { cn } from '@/lib/utils';
+import React, { useEffect, useState } from 'react';
+
+import { formatDistanceToNow } from 'date-fns';
 import {
   Bell,
   BellRing,
@@ -22,21 +10,29 @@ import {
   CheckCheck,
   X,
   Settings,
-  Volume2,
-  VolumeX,
   MessageSquare,
   AlertTriangle,
   CheckCircle,
   Info,
   Zap,
-  Users,
-  Activity,
-  Hash,
   Trash2,
   MoreHorizontal,
   ExternalLink,
 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
+import { useNotifications, useNotificationPermissions, useNotificationSounds, useFilteredNotifications } from '@/lib/hooks/use-notifications';
+import { cn } from '@/lib/utils';
+import type { RealtimeNotification, NotificationType, NotificationPriority } from '@/types/realtime';
+
 
 interface NotificationItemProps {
   notification: RealtimeNotification;

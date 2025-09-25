@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+
 import {
   DndContext,
   KeyboardSensor,
@@ -21,11 +22,6 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import {
-  ColumnDef,
-  ColumnFiltersState,
-  Row,
-  SortingState,
-  VisibilityState,
   flexRender,
   getCoreRowModel,
   getFacetedRowModel,
@@ -37,7 +33,6 @@ import {
 } from "@tanstack/react-table"
 import {
   CheckCircle2Icon,
-  CheckCircleIcon,
   ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -54,11 +49,11 @@ import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
 import { toast } from "sonner"
 import { z } from "zod"
 
-import { useIsMobile } from "@/hooks/use-mobile"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import type {
+  ChartConfig} from "@/components/ui/chart";
 import {
-  ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
@@ -106,6 +101,14 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
+import { useIsMobile } from "@/hooks/use-mobile"
+
+import type {
+  ColumnDef,
+  ColumnFiltersState,
+  Row,
+  SortingState,
+  VisibilityState} from "@tanstack/react-table";
 
 export const schema = z.object({
   id: z.number(),
@@ -137,7 +140,7 @@ function DragHandle({ id }: { id: number }) {
   )
 }
 
-const columns: ColumnDef<z.infer<typeof schema>>[] = [
+const columns: Array<ColumnDef<z.infer<typeof schema>>> = [
   {
     id: "drag",
     header: () => null,
@@ -327,7 +330,7 @@ function DraggableRow({ row }: { row: Row<z.infer<typeof schema>> }) {
       className="relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80"
       style={{
         transform: CSS.Transform.toString(transform),
-        transition: transition,
+        transition,
       }}
     >
       {row.getVisibleCells().map((cell) => (
@@ -342,7 +345,7 @@ function DraggableRow({ row }: { row: Row<z.infer<typeof schema>> }) {
 export function DataTable({
   data: initialData,
 }: {
-  data: z.infer<typeof schema>[]
+  data: Array<z.infer<typeof schema>>
 }) {
   const [data, setData] = React.useState(() => initialData)
   const [rowSelection, setRowSelection] = React.useState({})
@@ -626,16 +629,16 @@ export function DataTable({
         value="past-performance"
         className="flex flex-col px-4 lg:px-6"
       >
-        <div className="aspect-video w-full flex-1 rounded-lg border border-dashed"></div>
+        <div className="aspect-video w-full flex-1 rounded-lg border border-dashed" />
       </TabsContent>
       <TabsContent value="key-personnel" className="flex flex-col px-4 lg:px-6">
-        <div className="aspect-video w-full flex-1 rounded-lg border border-dashed"></div>
+        <div className="aspect-video w-full flex-1 rounded-lg border border-dashed" />
       </TabsContent>
       <TabsContent
         value="focus-documents"
         className="flex flex-col px-4 lg:px-6"
       >
-        <div className="aspect-video w-full flex-1 rounded-lg border border-dashed"></div>
+        <div className="aspect-video w-full flex-1 rounded-lg border border-dashed" />
       </TabsContent>
     </Tabs>
   )

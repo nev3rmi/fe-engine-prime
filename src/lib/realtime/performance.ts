@@ -1,4 +1,4 @@
-import { Socket } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 
 /**
  * Performance optimization utilities for Socket.io real-time features
@@ -71,9 +71,9 @@ export const throttleEvent = <T extends any[]>(
   socket: Socket | null,
   eventName: string,
   args: T,
-  delay: number = 1000
+  delay = 1000
 ): boolean => {
-  if (!socket) return false;
+  if (!socket) {return false;}
 
   const key = `${socket.id}_${eventName}`;
   const now = Date.now();
@@ -95,9 +95,9 @@ export const debounceEvent = <T extends any[]>(
   socket: Socket | null,
   eventName: string,
   args: T,
-  delay: number = 300
+  delay = 300
 ): void => {
-  if (!socket) return;
+  if (!socket) {return;}
 
   const key = `${socket.id}_${eventName}`;
 
@@ -128,8 +128,8 @@ export class EventBatcher {
     this.socket = socket;
   }
 
-  add(eventName: string, data: any, maxBatchSize: number = 10, flushDelay: number = 100): void {
-    if (!this.socket) return;
+  add(eventName: string, data: any, maxBatchSize = 10, flushDelay = 100): void {
+    if (!this.socket) {return;}
 
     if (!this.batches.has(eventName)) {
       this.batches.set(eventName, []);
@@ -204,7 +204,7 @@ export class ConnectionQualityMonitor {
   }
 
   private startMonitoring(): void {
-    if (!this.socket) return;
+    if (!this.socket) {return;}
 
     // Monitor ping/pong for latency
     this.socket.on('pong', (latency: number) => {
@@ -226,7 +226,7 @@ export class ConnectionQualityMonitor {
   }
 
   getAverageLatency(): number {
-    if (this.pingHistory.length === 0) return 0;
+    if (this.pingHistory.length === 0) {return 0;}
     return this.pingHistory.reduce((sum, ping) => sum + ping, 0) / this.pingHistory.length;
   }
 
@@ -237,10 +237,10 @@ export class ConnectionQualityMonitor {
   getConnectionQuality(): 'excellent' | 'good' | 'fair' | 'poor' | 'very poor' {
     const avgLatency = this.getAverageLatency();
 
-    if (avgLatency < this.qualityThresholds.excellent) return 'excellent';
-    if (avgLatency < this.qualityThresholds.good) return 'good';
-    if (avgLatency < this.qualityThresholds.fair) return 'fair';
-    if (avgLatency < this.qualityThresholds.poor) return 'poor';
+    if (avgLatency < this.qualityThresholds.excellent) {return 'excellent';}
+    if (avgLatency < this.qualityThresholds.good) {return 'good';}
+    if (avgLatency < this.qualityThresholds.fair) {return 'fair';}
+    if (avgLatency < this.qualityThresholds.poor) {return 'poor';}
     return 'very poor';
   }
 
@@ -294,7 +294,7 @@ export class AdaptiveEventController {
   }
 
   startAdaptiveEvent(eventName: string, callback: () => void): void {
-    if (!this.socket) return;
+    if (!this.socket) {return;}
 
     const frequency = this.eventFrequencies.get(eventName) || 5000;
 
@@ -452,7 +452,7 @@ export class EventListenerManager {
  * Cleanup utility to prevent memory leaks
  */
 export const cleanupSocketResources = (socket: Socket | null): void => {
-  if (!socket) return;
+  if (!socket) {return;}
 
   // Clear all throttle entries for this socket
   if (socket.id) {

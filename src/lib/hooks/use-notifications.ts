@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+
 import { getSocket } from '@/lib/realtime/client';
-import {
+import type {
   UseNotificationsReturn,
   RealtimeNotification,
   NotificationType,
@@ -19,7 +20,7 @@ export const useNotifications = (): UseNotificationsReturn => {
 
   useEffect(() => {
     const socket = getSocket();
-    if (!socket) return;
+    if (!socket) {return;}
 
     socketRef.current = socket;
     setIsLoading(true);
@@ -29,7 +30,7 @@ export const useNotifications = (): UseNotificationsReturn => {
       setNotifications(prev => {
         // Check if notification already exists
         const exists = prev.some(n => n.id === notification.id);
-        if (exists) return prev;
+        if (exists) {return prev;}
 
         const updated = [notification, ...prev];
 
@@ -238,7 +239,7 @@ export const useNotificationPermissions = () => {
   }, []);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
-    if (!isSupported) return false;
+    if (!isSupported) {return false;}
 
     try {
       const result = await Notification.requestPermission();
@@ -303,7 +304,7 @@ export const useNotificationSounds = () => {
   }, []);
 
   const playNotificationSound = useCallback((priority: NotificationPriority = 'normal') => {
-    if (!soundEnabled || !audioRef.current) return;
+    if (!soundEnabled || !audioRef.current) {return;}
 
     try {
       // Different sounds for different priorities
