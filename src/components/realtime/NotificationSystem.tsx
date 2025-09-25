@@ -355,7 +355,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
     markAllAsRead,
     clearNotification,
   } = useFilteredNotifications({
-    type: filter.type,
+    ...(filter.type && { type: filter.type }),
     unreadOnly: filter.unreadOnly,
     limit: 50,
   });
@@ -439,7 +439,10 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => setFilter(prev => ({ ...prev, type: undefined }))}>
+                <DropdownMenuItem onClick={() => setFilter(prev => {
+                  const { type, ...rest } = prev;
+                  return rest;
+                })}>
                   All types
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setFilter(prev => ({ ...prev, type: 'message' }))}>

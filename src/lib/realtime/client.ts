@@ -97,7 +97,7 @@ export const createSocketConnection = async (): Promise<Socket<ServerToClientEve
       }
 
       // Authenticate with server
-      socket.emit('auth:authenticate', session.user.id, (success: boolean, user?: AuthenticatedUser) => {
+      socket.emit('auth:authenticate', session.user?.id || '', (success: boolean, user?: AuthenticatedUser) => {
         if (success && user) {
           isAuthenticated = true;
           currentUser = user;
@@ -153,9 +153,9 @@ export const createSocketConnection = async (): Promise<Socket<ServerToClientEve
 
     // Track packet counts
     const originalEmit = socket.emit.bind(socket);
-    socket.emit = (...args: any[]) => {
+    (socket as any).emit = (...args: any[]) => {
       metrics.packetsSent++;
-      return originalEmit(...args);
+      return (originalEmit as any)(...args);
     };
 
     // Track received packets

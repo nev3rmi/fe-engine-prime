@@ -70,11 +70,11 @@ export const config = {
           await createUser({
             id: user.id!,
             email: user.email,
-            name: user.name,
-            image: user.image,
+            name: user.name ?? null,
+            image: user.image ?? null,
             username: (user as any).username,
             role: "USER" as UserRole,
-            provider: account?.provider,
+            provider: account?.provider ?? null,
             providerId: user.id!,
             isActive: true,
             emailVerified: !!user.email,
@@ -84,8 +84,8 @@ export const config = {
         } else {
           // Update existing user info
           await updateUser(existingUser.id, {
-            name: user.name,
-            image: user.image,
+            name: user.name ?? null,
+            image: user.image ?? null,
             username: (user as any).username,
             lastLoginAt: new Date(),
             updatedAt: new Date(),
@@ -117,7 +117,7 @@ export const config = {
     },
 
     async session({ session, token }: { session: Session; token: JWT }) {
-      if (token) {
+      if (token && session.user) {
         session.user.id = token.userId as string;
         session.user.role = token.role as UserRole;
         session.user.permissions = token.permissions as Permission[];
@@ -141,7 +141,6 @@ export const config = {
     updateAge: 24 * 60 * 60, // 24 hours
   },
   jwt: {
-    secret: process.env.JWT_SECRET!,
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   secret: process.env.AUTH_SECRET!,

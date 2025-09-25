@@ -41,7 +41,7 @@ import {
  * Connection status indicator
  */
 const ConnectionStatus: React.FC = () => {
-  const { isConnected, connectionError, reconnectAttempts, currentUser } = useRealtime();
+  const { isConnected, connectionError, reconnectAttempts } = useRealtime();
   const connectionStatus = useConnectionStatus();
 
   const getStatusInfo = () => {
@@ -67,7 +67,7 @@ const ConnectionStatus: React.FC = () => {
       icon: <Wifi className="w-4 h-4 text-green-500" />,
       text: 'Connected',
       variant: 'default' as const,
-      description: `Connected as ${currentUser?.name || 'Unknown User'}`,
+      description: 'Connected successfully',
     };
   };
 

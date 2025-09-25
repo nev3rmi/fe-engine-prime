@@ -20,7 +20,7 @@ export const GET = withAuth<any>(
         page,
         limit,
         role,
-        isActive: isActive ? isActive === "true" : undefined,
+        ...(isActive !== null && { isActive: isActive === "true" }),
       })
 
       return NextResponse.json(result)

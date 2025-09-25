@@ -94,8 +94,13 @@ export async function updateUser(id: string, updateData: UpdateUserData): Promis
       return null;
     }
 
+    const existingUser = users[userIndex];
+    if (!existingUser) {
+      return null;
+    }
+
     users[userIndex] = {
-      ...users[userIndex],
+      ...existingUser,
       ...updateData,
       updatedAt: new Date(),
     };

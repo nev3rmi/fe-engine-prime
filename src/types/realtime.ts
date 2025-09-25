@@ -2,15 +2,20 @@ import { User, UserRole, Permission } from './auth';
 
 // Socket.io event types
 export interface ServerToClientEvents {
+  // Authentication
+  'auth:authenticate': (success: boolean, user?: AuthenticatedUser) => void;
+
   // Presence events
   'user:online': (user: Pick<User, 'id' | 'name' | 'image' | 'role'>) => void;
   'user:offline': (userId: string) => void;
+  'user:typing': (data: { userId: string; user: OnlineUser; isTyping: boolean }) => void;
   'presence:update': (users: OnlineUser[]) => void;
 
   // Message events
   'message:new': (message: ChatMessage) => void;
   'message:edit': (message: Partial<ChatMessage> & { id: string }) => void;
   'message:delete': (messageId: string) => void;
+  'message:reaction': (data: { messageId: string; reactions: any }) => void;
 
   // Notification events
   'notification:new': (notification: RealtimeNotification) => void;
@@ -23,6 +28,14 @@ export interface ServerToClientEvents {
   // System events
   'system:maintenance': (message: string, duration?: number) => void;
   'system:announcement': (announcement: Announcement) => void;
+
+  // Room events
+  'room:presence:update': (users: OnlineUser[]) => void;
+
+  // Connection events
+  'reconnect': (attemptNumber: number) => void;
+  'reconnect_error': (error: Error) => void;
+  'reconnect_failed': () => void;
 }
 
 export interface ClientToServerEvents {
@@ -33,12 +46,19 @@ export interface ClientToServerEvents {
   'presence:join': () => void;
   'presence:leave': () => void;
   'presence:status': (status: PresenceStatus) => void;
+  'presence:update': (users: any) => void;
+  'user:join': (channelId: string) => void;
+  'user:leave': (channelId: string) => void;
 
   // Message events
   'message:send': (message: NewChatMessage, callback: (success: boolean, message?: ChatMessage) => void) => void;
   'message:edit': (messageId: string, content: string, callback: (success: boolean) => void) => void;
   'message:delete': (messageId: string, callback: (success: boolean) => void) => void;
   'message:typing': (channelId: string, isTyping: boolean) => void;
+  'message:add_reaction': (messageId: string, emoji: string, callback: (success: boolean) => void) => void;
+  'message:remove_reaction': (messageId: string, emoji: string, callback: (success: boolean) => void) => void;
+  'message:history': (params: { channelId: string; limit: number; before?: string }, callback?: (success: boolean, messages: ChatMessage[], hasMoreMessages: boolean) => void) => void;
+  'message:received': (messageId: string) => void;
 
   // Room management
   'room:join': (roomId: string, callback: (success: boolean) => void) => void;
@@ -47,12 +67,27 @@ export interface ClientToServerEvents {
   // Data subscriptions
   'data:subscribe': (dataType: string, filters?: any) => void;
   'data:unsubscribe': (dataType: string) => void;
+  'data:sync': (data: any) => void;
+  'data:update': (data: any, callback?: (success: boolean) => void) => void;
+  'data:request': (params: { type: string; filters?: any } | string, callback?: (success: boolean, data: any) => void) => void;
   'widget:subscribe': (widgetId: string) => void;
   'widget:unsubscribe': (widgetId: string) => void;
+  'widget:refresh': (widgetId: string, callback?: (success: boolean, data: any) => void) => void;
+  'widget:request': (widgetId: string, callback?: (success: boolean, data: any) => void) => void;
+  'widget:update_data': (widgetId: string, data: any, callback?: (success: boolean) => void) => void;
 
   // Notifications
   'notification:mark_read': (notificationId: string) => void;
   'notification:mark_all_read': () => void;
+  'notification:send': (notification: any, callback?: (success: boolean) => void) => void;
+  'notification:read': (notificationId: string) => void;
+  'notification:received': (notificationId: string) => void;
+  'notification:get_all': (callback: (success: boolean, notifications: RealtimeNotification[]) => void) => void;
+
+  // System events
+  'connect': () => void;
+  'disconnect': () => void;
+  'ping': () => void;
 }
 
 export interface InterServerEvents {
@@ -206,6 +241,7 @@ export interface UseRealtimeReturn {
   connectionError: string | null;
   reconnectAttempts: number;
   lastActivity: Date | null;
+  currentUser: AuthenticatedUser | null;
   connect: () => void;
   disconnect: () => void;
 }

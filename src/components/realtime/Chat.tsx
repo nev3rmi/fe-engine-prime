@@ -300,7 +300,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
       content: message.trim(),
       type: 'text',
       channelId,
-      replyToId: replyTo?.id,
+      ...(replyTo?.id && { replyToId: replyTo.id }),
     };
 
     onSend(newMessage);
@@ -500,7 +500,7 @@ export const Chat: React.FC<ChatComponentProps> = ({
                 <MessageItem
                   key={message.id}
                   message={message}
-                  currentUserId={onlineUsers.find(u => u.id)?.id} // This should come from auth context
+                  currentUserId={onlineUsers.find(u => u.id)?.id || ''} // This should come from auth context
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                   onReply={handleReply}
@@ -519,7 +519,7 @@ export const Chat: React.FC<ChatComponentProps> = ({
           <MessageInput
             onSend={handleSend}
             channelId={channelId}
-            replyTo={replyTo}
+            {...(replyTo && { replyTo })}
             onCancelReply={() => setReplyTo(null)}
             disabled={isLoading}
           />

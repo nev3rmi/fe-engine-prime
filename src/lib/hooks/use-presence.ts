@@ -83,8 +83,8 @@ export const usePresence = (): UsePresenceReturn => {
   // Set current user ID from socket data
   useEffect(() => {
     const socket = getSocket();
-    if (socket && socket.data?.userId) {
-      currentUserIdRef.current = socket.data.userId;
+    if (socket && (socket as any).auth?.userId) {
+      currentUserIdRef.current = (socket as any).auth.userId;
     }
   }, []);
 

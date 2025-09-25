@@ -6,6 +6,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Card, CardContent } from '@/components/ui/card';
 import { usePresence, useUserPresence } from '@/lib/hooks/use-presence';
 import { OnlineUser, PresenceStatus } from '@/types/realtime';
+import { UserRole } from '@/types/auth';
 import { cn } from '@/lib/utils';
 import { Circle, Users } from 'lucide-react';
 
@@ -181,8 +182,8 @@ export const PresenceIndicator: React.FC<PresenceIndicatorProps> = ({
     id: userId,
     name: 'Unknown User',
     image: null,
-    role: 'USER',
-    status: 'offline',
+    role: UserRole.USER,
+    status: 'offline' as PresenceStatus,
     lastActivity: new Date(),
   };
 

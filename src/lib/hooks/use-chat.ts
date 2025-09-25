@@ -292,7 +292,9 @@ export const useChatHistory = (channelId: string, limit: number = 50) => {
   const loadMore = useCallback(() => {
     if (hasMore && history.length > 0) {
       const oldestMessage = history[0];
-      loadHistory(oldestMessage.id);
+      if (oldestMessage) {
+        loadHistory(oldestMessage.id);
+      }
     }
   }, [hasMore, history, loadHistory]);
 
