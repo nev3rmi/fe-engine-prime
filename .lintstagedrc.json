@@ -1,0 +1,5 @@
+{
+  "*.{js,jsx,ts,tsx}": ["eslint --fix", "prettier --write"],
+  "*.{json,css,scss,md,yaml,yml}": ["prettier --write"],
+  "*.{ts,tsx}": ["bash -c 'npx tsc --noEmit'"]
+}
