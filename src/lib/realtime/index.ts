@@ -19,6 +19,16 @@ export * from './server';
 // Performance optimizations
 export * from './performance';
 
+// Import needed functions for initialization
+import {
+  createSocketConnection,
+  getSocket,
+  getPerformanceMetrics,
+  isSocketConnected,
+  initializeRealtimeConfig
+} from './client';
+import { getOnlineUsersCount } from './server';
+
 // React hooks
 export * from '../hooks/use-realtime';
 export * from '../hooks/use-presence';

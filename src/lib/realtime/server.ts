@@ -15,7 +15,7 @@ import {
   RealtimeNotification,
 } from '@/types/realtime';
 import { getUserById } from '@/lib/auth/user-service';
-import { getRolePermissions, hasPermission } from '@/lib/auth/permissions';
+import { hasPermission } from '@/lib/auth/permissions';
 import { Permission } from '@/types/auth';
 
 // Global socket server instance
@@ -64,10 +64,14 @@ export const initializeSocketServer = (server: HTTPServer): SocketIOServer => {
         return next(new Error('No authentication token provided'));
       }
 
+      // Create headers object for NextAuth getToken
+      const headers = new Headers();
+      headers.set('authorization', `Bearer ${token}`);
+
       // Verify JWT token using NextAuth
       const decoded = await getToken({
-        token,
-        secret: process.env.JWT_SECRET!,
+        req: { headers } as Request,
+        secret: process.env.NEXTAUTH_SECRET,
       });
 
       if (!decoded || !decoded.userId) {
@@ -80,10 +84,9 @@ export const initializeSocketServer = (server: HTTPServer): SocketIOServer => {
         return next(new Error('User not found or inactive'));
       }
 
-      const permissions = await getRolePermissions(user.role);
-
       // Check if user has real-time chat permission
-      if (!hasPermission(permissions, 'chat:read' as Permission)) {
+      const hasChat = await hasPermission(user, 'chat:read' as Permission);
+      if (!hasChat) {
         return next(new Error('Insufficient permissions for real-time features'));
       }
 
@@ -95,8 +98,8 @@ export const initializeSocketServer = (server: HTTPServer): SocketIOServer => {
         image: user.image,
         email: user.email,
         role: user.role,
-        permissions,
-        username: user.username,
+        permissions: [], // Will be populated based on role
+        username: user.username || undefined,
       };
       socket.data.rooms = [];
       socket.data.lastActivity = new Date();
@@ -171,9 +174,18 @@ export const initializeSocketServer = (server: HTTPServer): SocketIOServer => {
     });
 
     socket.on('message:typing', (channelId: string, isTyping: boolean) => {
+      const onlineUser: OnlineUser = {
+        id: socket.data.user.id,
+        name: socket.data.user.name,
+        image: socket.data.user.image,
+        role: socket.data.user.role,
+        status: 'online' as PresenceStatus,
+        lastActivity: socket.data.lastActivity,
+      };
+
       socket.to(`channel:${channelId}`).emit('user:typing', {
         userId: socket.data.userId,
-        user: socket.data.user,
+        user: onlineUser,
         isTyping,
       });
     });
@@ -429,6 +441,7 @@ const handleEditMessage = async (
       const messageIndex = messages.findIndex(m => m.id === messageId);
       if (messageIndex > -1) {
         const message = messages[messageIndex];
+        if (!message) return false;
 
         // Check if user can edit (author or has permission)
         if (message.authorId !== socket.data.userId &&
@@ -475,6 +488,7 @@ const handleDeleteMessage = async (
       const messageIndex = messages.findIndex(m => m.id === messageId);
       if (messageIndex > -1) {
         const message = messages[messageIndex];
+        if (!message) return false;
 
         // Check if user can delete (author or has permission)
         if (message.authorId !== socket.data.userId &&

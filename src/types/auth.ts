@@ -106,9 +106,9 @@ export interface AuthSession extends DefaultSession {
 }
 
 /**
- * JWT token with additional fields
+ * Extended JWT token with additional fields
  */
-export interface AuthJWT extends JWT {
+export interface ExtendedJWT {
   userId: string;
   role: UserRole;
   permissions: Permission[];
@@ -257,5 +257,5 @@ declare module "next-auth" {
 }
 
 declare module "next-auth/jwt" {
-  interface JWT extends AuthJWT {}
+  interface JWT extends ExtendedJWT {}
 }

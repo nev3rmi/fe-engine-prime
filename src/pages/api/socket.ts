@@ -3,14 +3,14 @@ import { Server as HTTPServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { initializeSocketServer, getSocketServer } from '@/lib/realtime/server';
 
-// Extend Next.js API response type to include socket server
-interface NextApiResponseWithSocket extends NextApiResponse {
+// Type for the extended response with socket server
+type NextApiResponseWithSocket = NextApiResponse & {
   socket: {
     server: HTTPServer & {
       io?: SocketIOServer;
     };
   };
-}
+};
 
 /**
  * Socket.io initialization endpoint for Next.js
@@ -18,20 +18,21 @@ interface NextApiResponseWithSocket extends NextApiResponse {
  */
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponseWithSocket
+  res: NextApiResponse
 ) {
+  const resWithSocket = res as NextApiResponseWithSocket;
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
   try {
     // Check if Socket.io server is already initialized
-    if (!res.socket.server.io) {
+    if (!resWithSocket.socket.server.io) {
       console.log('Initializing Socket.io server...');
 
       // Initialize the Socket.io server
-      const io = initializeSocketServer(res.socket.server);
-      res.socket.server.io = io;
+      const io = initializeSocketServer(resWithSocket.socket.server);
+      resWithSocket.socket.server.io = io;
 
       console.log('Socket.io server initialized successfully');
     } else {

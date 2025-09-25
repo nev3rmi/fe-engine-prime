@@ -2,6 +2,15 @@ import '@testing-library/jest-dom'
 import { expect, afterEach, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
 
+// Define the matchers interface locally since the import path is not available
+interface TestingLibraryMatchers<E, R> {
+  toBeInTheDocument(): R
+  toHaveTextContent(text: string | RegExp): R
+  toBeVisible(): R
+  toBeDisabled(): R
+  // Add more matchers as needed
+}
+
 // Extend Vitest's expect with jest-dom matchers
 declare module 'vitest' {
   interface Assertion<T = any>

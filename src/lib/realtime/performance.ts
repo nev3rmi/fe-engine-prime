@@ -51,7 +51,7 @@ class SocketConnectionPool {
 
   getSocket(poolName = 'default'): Socket | null {
     const pool = this.pools.get(poolName);
-    return pool && pool.length > 0 ? pool[0] : null;
+    return pool && pool.length > 0 ? (pool[0] || null) : null;
   }
 
   getPoolSize(poolName = 'default'): number {
@@ -455,17 +455,21 @@ export const cleanupSocketResources = (socket: Socket | null): void => {
   if (!socket) return;
 
   // Clear all throttle entries for this socket
-  for (const [key] of throttleMap.entries()) {
-    if (key.startsWith(socket.id)) {
-      throttleMap.delete(key);
+  if (socket.id) {
+    for (const [key] of throttleMap.entries()) {
+      if (key.startsWith(socket.id)) {
+        throttleMap.delete(key);
+      }
     }
   }
 
   // Clear all debounce entries for this socket
-  for (const [key, timeout] of debounceMap.entries()) {
-    if (key.startsWith(socket.id)) {
-      clearTimeout(timeout);
-      debounceMap.delete(key);
+  if (socket.id) {
+    for (const [key, timeout] of debounceMap.entries()) {
+      if (key.startsWith(socket.id)) {
+        clearTimeout(timeout);
+        debounceMap.delete(key);
+      }
     }
   }
 };

@@ -5,12 +5,13 @@ import { createMockSession, createMockAdminSession, createMockEditorSession } fr
 
 // Mock Auth.js session hook
 export const mockUseSession = (session: Session | null = null) => {
-  const { useSession } = vi.mocked(await vi.importMocked('next-auth/react'))
-  useSession.mockReturnValue({
-    data: session,
-    status: session ? 'authenticated' : 'unauthenticated',
-    update: vi.fn(),
-  })
+  vi.mock('next-auth/react', () => ({
+    useSession: vi.fn(() => ({
+      data: session,
+      status: session ? 'authenticated' : 'unauthenticated',
+      update: vi.fn(),
+    }))
+  }))
 }
 
 // Mock server-side auth
@@ -60,9 +61,9 @@ export const createUserWithPermissions = (permissions: Permission[]): User => ({
   providerId: 'github-123',
   isActive: true,
   emailVerified: true,
-  lastLoginAt: new Date().toISOString(),
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
+  lastLoginAt: new Date(),
+  createdAt: new Date(),
+  updatedAt: new Date(),
   permissions,
   metadata: {},
 })
