@@ -23,14 +23,14 @@ const nextConfig: NextConfig = {
       "date-fns",
       "zod",
     ],
+  },
 
-    // Turbopack configuration
-    turbo: {
-      rules: {
-        "*.svg": {
-          loaders: ["@svgr/webpack"],
-          as: "*.js",
-        },
+  // Turbopack configuration (moved from experimental.turbo)
+  turbopack: {
+    rules: {
+      "*.svg": {
+        loaders: ["@svgr/webpack"],
+        as: "*.js",
       },
     },
   },

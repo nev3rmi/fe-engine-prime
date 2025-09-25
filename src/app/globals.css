@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "tw-animate-css";
+/* @import "tw-animate-css"; -- Disabled: incompatible utility names with v4 beta */
 
 @custom-variant dark (&:is(.dark *));
 
