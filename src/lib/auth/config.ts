@@ -1,10 +1,11 @@
+import Credentials from "next-auth/providers/credentials";
 import Discord from "next-auth/providers/discord";
 import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 
 
 import { getRolePermissions } from "@/lib/auth/permissions";
-import { getUserById, createUser, updateUser } from "@/lib/auth/user-service";
+import { getUserById, createUser, updateUser, getUserByEmail } from "@/lib/auth/user-service";
 import type { UserRole, Permission } from "@/types/auth";
 
 import type { NextAuthConfig , Session, User as NextAuthUser } from "next-auth";
@@ -17,6 +18,68 @@ export const config = {
     error: "/auth/error",
   },
   providers: [
+    Credentials({
+      name: "credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" }
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null;
+        }
+
+        // Mock credentials for testing
+        const testCredentials = {
+          "admin@example.com": { password: "adminuser123", role: "ADMIN" as UserRole },
+          "editor@example.com": { password: "editoruser123", role: "EDITOR" as UserRole },
+          "test@example.com": { password: "testuser123", role: "USER" as UserRole },
+        };
+
+        const email = credentials.email as string;
+        const password = credentials.password as string;
+
+        // Check against mock credentials
+        const testCred = testCredentials[email as keyof typeof testCredentials];
+        if (testCred && testCred.password === password) {
+          // Check if user exists in mock database
+          let user = await getUserByEmail(email);
+
+          if (!user) {
+            // Create user if doesn't exist
+            const newUserId = Date.now().toString();
+            const usernameBase = email.split('@')[0] || 'user';
+            await createUser({
+              id: newUserId,
+              email,
+              name: usernameBase.charAt(0).toUpperCase() + usernameBase.slice(1),
+              image: null,
+              username: usernameBase,
+              role: testCred.role,
+              provider: "credentials",
+              providerId: newUserId,
+              isActive: true,
+              emailVerified: true,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            });
+            user = await getUserByEmail(email);
+          }
+
+          if (user) {
+            return {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              image: user.image,
+              username: user.username,
+            };
+          }
+        }
+
+        return null;
+      }
+    }),
     GitHub({
       clientId: process.env.GITHUB_CLIENT_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,

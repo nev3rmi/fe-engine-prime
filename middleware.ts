@@ -8,6 +8,7 @@ import type { User } from "@/types/auth"
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
+  console.log(`[MIDDLEWARE START] Request to: ${pathname}`)
 
   // Skip middleware for static files, API auth routes, and health checks
   if (
@@ -23,8 +24,11 @@ export async function middleware(request: NextRequest) {
     const session = await auth()
     const user = session?.user as User | undefined
 
+    console.log(`[MIDDLEWARE] Path: ${pathname}, User: ${user ? `${user.email} (${user.role})` : 'none'}, Session: ${!!session}`)
+
     // Handle public routes
     if (matchesPath(pathname, authRoutes.public)) {
+      console.log(`[MIDDLEWARE] ${pathname} is PUBLIC route`);
       // If user is authenticated and trying to access login, redirect to dashboard
       if (user && (pathname === "/login" || pathname === "/auth/signin")) {
         return NextResponse.redirect(new URL("/dashboard", request.url))
@@ -33,7 +37,9 @@ export async function middleware(request: NextRequest) {
     }
 
     // Authentication required for protected routes
+    console.log(`[MIDDLEWARE] ${pathname} is NOT public, checking auth...`)
     if (!user) {
+      console.log(`[MIDDLEWARE] NO USER found, redirecting to login`);
       // For API routes, return 401
       if (pathname.startsWith("/api")) {
         return NextResponse.json(
