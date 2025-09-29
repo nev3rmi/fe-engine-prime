@@ -1,14 +1,13 @@
-import { NextResponse } from "next/server"
-import type { NextRequest } from "next/server"
+import { NextResponse, type NextRequest } from "next/server";
 
-import { auth } from "@/lib/auth"
-import { hasAllPermissions } from "@/lib/auth/permissions"
-import { authRoutes, matchesPath, getRoutePermissions } from "@/lib/middleware/auth"
-import type { User } from "@/types/auth"
+import { auth } from "@/lib/auth";
+import { hasAllPermissions } from "@/lib/auth/permissions";
+import { authRoutes, matchesPath, getRoutePermissions } from "@/lib/middleware/auth";
+import type { User } from "@/types/auth";
 
 export async function middleware(request: NextRequest) {
-  const pathname = request.nextUrl.pathname
-  console.log(`[MIDDLEWARE START] Request to: ${pathname}`)
+  const pathname = request.nextUrl.pathname;
+  console.log(`[MIDDLEWARE START] Request to: ${pathname}`);
 
   // Skip middleware for static files, API auth routes, and health checks
   if (
@@ -17,63 +16,56 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/auth") ||
     pathname === "/api/health"
   ) {
-    return NextResponse.next()
+    return NextResponse.next();
   }
 
   try {
-    const session = await auth()
-    const user = session?.user as User | undefined
+    const session = await auth();
+    const user = session?.user as User | undefined;
 
-    console.log(`[MIDDLEWARE] Path: ${pathname}, User: ${user ? `${user.email} (${user.role})` : 'none'}, Session: ${!!session}`)
+    console.log(
+      `[MIDDLEWARE] Path: ${pathname}, User: ${user ? `${user.email} (${user.role})` : "none"}, Session: ${!!session}`
+    );
 
     // Handle public routes
     if (matchesPath(pathname, authRoutes.public)) {
       console.log(`[MIDDLEWARE] ${pathname} is PUBLIC route`);
       // If user is authenticated and trying to access login, redirect to dashboard
       if (user && (pathname === "/login" || pathname === "/auth/signin")) {
-        return NextResponse.redirect(new URL("/dashboard", request.url))
+        return NextResponse.redirect(new URL("/dashboard", request.url));
       }
-      return NextResponse.next()
+      return NextResponse.next();
     }
 
     // Authentication required for protected routes
-    console.log(`[MIDDLEWARE] ${pathname} is NOT public, checking auth...`)
+    console.log(`[MIDDLEWARE] ${pathname} is NOT public, checking auth...`);
     if (!user) {
       console.log(`[MIDDLEWARE] NO USER found, redirecting to login`);
       // For API routes, return 401
       if (pathname.startsWith("/api")) {
-        return NextResponse.json(
-          { error: "Authentication required" },
-          { status: 401 }
-        )
+        return NextResponse.json({ error: "Authentication required" }, { status: 401 });
       }
       // For pages, redirect to login
-      const loginUrl = new URL("/login", request.url)
-      loginUrl.searchParams.set("callbackUrl", pathname + request.nextUrl.search)
-      return NextResponse.redirect(loginUrl)
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("callbackUrl", pathname + request.nextUrl.search);
+      return NextResponse.redirect(loginUrl);
     }
 
     // Check if user account is active
     if (!user.isActive) {
       if (pathname.startsWith("/api")) {
-        return NextResponse.json(
-          { error: "Account is inactive" },
-          { status: 403 }
-        )
+        return NextResponse.json({ error: "Account is inactive" }, { status: 403 });
       }
-      return NextResponse.redirect(new URL("/auth/inactive", request.url))
+      return NextResponse.redirect(new URL("/auth/inactive", request.url));
     }
 
     // Check admin routes
     if (matchesPath(pathname, authRoutes.admin)) {
       if (user.role !== "ADMIN") {
         if (pathname.startsWith("/api")) {
-          return NextResponse.json(
-            { error: "Admin access required" },
-            { status: 403 }
-          )
+          return NextResponse.json({ error: "Admin access required" }, { status: 403 });
         }
-        return NextResponse.redirect(new URL("/dashboard", request.url))
+        return NextResponse.redirect(new URL("/dashboard", request.url));
       }
     }
 
@@ -81,55 +73,49 @@ export async function middleware(request: NextRequest) {
     if (matchesPath(pathname, authRoutes.editor)) {
       if (user.role !== "ADMIN" && user.role !== "EDITOR") {
         if (pathname.startsWith("/api")) {
-          return NextResponse.json(
-            { error: "Editor access required" },
-            { status: 403 }
-          )
+          return NextResponse.json({ error: "Editor access required" }, { status: 403 });
         }
-        return NextResponse.redirect(new URL("/dashboard", request.url))
+        return NextResponse.redirect(new URL("/dashboard", request.url));
       }
     }
 
     // Check specific route permissions
-    const requiredPermissions = getRoutePermissions(pathname)
+    const requiredPermissions = getRoutePermissions(pathname);
     if (requiredPermissions.length > 0) {
-      const hasPermissions = await hasAllPermissions(user, requiredPermissions)
+      const hasPermissions = await hasAllPermissions(user, requiredPermissions);
       if (!hasPermissions) {
         if (pathname.startsWith("/api")) {
           return NextResponse.json(
             {
               error: "Insufficient permissions",
               requiredPermissions,
-              userPermissions: user.permissions || []
+              userPermissions: user.permissions ?? [],
             },
             { status: 403 }
-          )
+          );
         }
-        return NextResponse.redirect(new URL("/dashboard", request.url))
+        return NextResponse.redirect(new URL("/dashboard", request.url));
       }
     }
 
     // Add user info to headers for API routes
-    const response = NextResponse.next()
-    response.headers.set("x-user-id", user.id)
-    response.headers.set("x-user-role", user.role)
-    response.headers.set("x-user-permissions", JSON.stringify(user.permissions || []))
-    response.headers.set("x-user-active", user.isActive.toString())
+    const response = NextResponse.next();
+    response.headers.set("x-user-id", user.id);
+    response.headers.set("x-user-role", user.role);
+    response.headers.set("x-user-permissions", JSON.stringify(user.permissions ?? []));
+    response.headers.set("x-user-active", user.isActive.toString());
 
-    return response
+    return response;
   } catch (error) {
-    console.error("Middleware error:", error)
+    console.error("Middleware error:", error);
 
     // For API routes, return error response
     if (pathname.startsWith("/api")) {
-      return NextResponse.json(
-        { error: "Authentication service error" },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: "Authentication service error" }, { status: 500 });
     }
 
     // For pages, redirect to error page
-    return NextResponse.redirect(new URL("/auth/error", request.url))
+    return NextResponse.redirect(new URL("/auth/error", request.url));
   }
 }
 
@@ -144,4 +130,4 @@ export const config = {
      */
     "/((?!_next/static|_next/image|favicon.ico|public/).*)",
   ],
-}
+};
