@@ -6,7 +6,7 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { toggleUserStatus, getUserById } from "@/lib/auth/user-service";
 import { Permission } from "@/types/auth";
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth();
 
@@ -28,17 +28,20 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       return NextResponse.json({ message: "Invalid status value" }, { status: 400 });
     }
 
+    // Await params in Next.js 15
+    const { id } = await params;
+
     // Prevent users from deactivating themselves
-    if (params.id === session.user.id && !isActive) {
+    if (id === session.user.id && !isActive) {
       return NextResponse.json({ message: "Cannot deactivate your own account" }, { status: 400 });
     }
 
-    const targetUser = await getUserById(params.id);
+    const targetUser = await getUserById(id);
     if (!targetUser) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    const updatedUser = await toggleUserStatus(params.id, isActive);
+    const updatedUser = await toggleUserStatus(id, isActive);
 
     if (!updatedUser) {
       return NextResponse.json({ message: "Failed to update user status" }, { status: 500 });
@@ -47,7 +50,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     // Log status change for audit trail
     await logUserStatusChange({
       userId: session.user.id!,
-      targetUserId: params.id,
+      targetUserId: id,
       action: isActive ? "activate" : "deactivate",
       ipAddress:
         request.headers.get("x-forwarded-for") ?? request.headers.get("x-real-ip") ?? undefined,

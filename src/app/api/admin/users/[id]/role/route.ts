@@ -6,7 +6,7 @@ import { hasPermission, canManageRole } from "@/lib/auth/permissions";
 import { updateUserRole, getUserById } from "@/lib/auth/user-service";
 import { Permission, UserRole } from "@/types/auth";
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth();
 
@@ -37,19 +37,22 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       );
     }
 
+    // Await params in Next.js 15
+    const { id } = await params;
+
     // Get current user data before update for audit log
-    const targetUser = await getUserById(params.id);
+    const targetUser = await getUserById(id);
     if (!targetUser) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
     const oldRole = targetUser.role;
-    const updatedUser = await updateUserRole(params.id, role);
+    const updatedUser = await updateUserRole(id, role);
 
     // Log role change for audit trail
     await logRoleChange({
       userId: session.user.id!,
-      targetUserId: params.id,
+      targetUserId: id,
       oldRole,
       newRole: role,
       ipAddress:
