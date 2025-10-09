@@ -12,7 +12,7 @@
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,md,json,css,scss,yml,yaml}\"",
     "type-check": "tsc --noEmit",
     "analyze": "cross-env ANALYZE=true pnpm run build",
-    "check-all": "npm run type-check && npm run lint && npm run format:check && npm run build",
+    "check-all": "pnpm run type-check && pnpm run lint && pnpm run format:check && pnpm run build",
     "prepare": "husky",
     "test": "vitest",
     "test:ui": "vitest --ui",
@@ -26,7 +26,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
-    "test:all": "npm run test:unit && npm run test:security && npm run test:performance && npm run test:e2e",
+    "test:all": "pnpm run test:unit && pnpm run test:security && pnpm run test:performance && pnpm run test:e2e",
     "quality:check": "node scripts/quality-check.js",
     "quality:check:e2e": "node scripts/quality-check.js --e2e",
     "quality:check:fast": "node scripts/quality-check.js --skip-build"
