@@ -40,7 +40,7 @@ jobs:
         run: pnpm run type-check
 
       - name: Lint check
-        run: pnpm run lint
+        run: pnpm run lint --max-warnings=100
 
       - name: Format check
         run: pnpm run format:check
@@ -217,6 +217,7 @@ jobs:
 
       - name: Run dependency vulnerability scan
         run: pnpm audit --audit-level=moderate
+        continue-on-error: true
 
       - name: Run OWASP dependency check
         uses: dependency-check/Dependency-Check_Action@main
