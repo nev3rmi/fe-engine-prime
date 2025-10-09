@@ -1,34 +1,29 @@
-import type {
-  User,
-  PermissionResult,
-  PermissionContext} from "@/types/auth";
 import {
   Permission,
   UserRole,
   DEFAULT_ROLE_PERMISSIONS,
   ROLE_HIERARCHY,
+  type User,
+  type PermissionResult,
+  type PermissionContext,
 } from "@/types/auth";
 
 /**
  * Get permissions for a specific role
  */
 export async function getRolePermissions(role: UserRole): Promise<Permission[]> {
-  return DEFAULT_ROLE_PERMISSIONS[role] || [];
+  return DEFAULT_ROLE_PERMISSIONS[role] ?? [];
 }
 
 /**
  * Check if a user has a specific permission
  */
-export async function hasPermission(
-  user: User | null,
-  permission: Permission,
-  context?: Record<string, any>
-): Promise<boolean> {
+export async function hasPermission(user: User | null, permission: Permission): Promise<boolean> {
   if (!user?.isActive) {
     return false;
   }
 
-  const userPermissions = user.permissions || (await getRolePermissions(user.role));
+  const userPermissions = user.permissions ?? (await getRolePermissions(user.role));
   return userPermissions.includes(permission);
 }
 
@@ -90,7 +85,7 @@ export async function checkPermission(context: PermissionContext): Promise<Permi
     };
   }
 
-  const userPermissions = user.permissions || (await getRolePermissions(user.role));
+  const userPermissions = user.permissions ?? (await getRolePermissions(user.role));
   const hasRequiredPermission = userPermissions.includes(action);
 
   if (!hasRequiredPermission) {
@@ -120,9 +115,13 @@ export function hasHigherOrEqualRole(userRole: UserRole, targetRole: UserRole): 
  * Get the minimum role required for a permission
  */
 export function getMinimumRoleForPermission(permission: Permission): UserRole | null {
-  for (const [role, permissions] of Object.entries(DEFAULT_ROLE_PERMISSIONS)) {
+  // Check roles in order from lowest to highest to find minimum role
+  const roleOrder: UserRole[] = [UserRole.USER, UserRole.EDITOR, UserRole.ADMIN];
+
+  for (const role of roleOrder) {
+    const permissions = DEFAULT_ROLE_PERMISSIONS[role];
     if (permissions.includes(permission)) {
-      return role as UserRole;
+      return role; // Return first (minimum) role that has permission
     }
   }
   return null;
@@ -192,7 +191,7 @@ export function filterPermissionsByCategory(
     api: [Permission.ACCESS_API, Permission.ADMIN_API_ACCESS],
   };
 
-  return permissions.filter(permission => categoryMap[category]?.includes(permission) || false);
+  return permissions.filter(permission => categoryMap[category]?.includes(permission) ?? false);
 }
 
 /**

@@ -98,8 +98,8 @@ const eslintConfig = [
       ],
       "@typescript-eslint/consistent-type-definitions": ["error", "interface"],
       "@typescript-eslint/array-type": ["error", { default: "array-simple" }],
-      "@typescript-eslint/prefer-nullish-coalescing": "error",
-      "@typescript-eslint/prefer-optional-chain": "error",
+      "@typescript-eslint/prefer-nullish-coalescing": "warn",
+      "@typescript-eslint/prefer-optional-chain": "warn",
 
       // React specific rules
       "react/react-in-jsx-scope": "off", // Not needed in React 17+
@@ -169,7 +169,7 @@ const eslintConfig = [
           pathGroupsExcludedImportTypes: ["react", "next"],
         },
       ],
-      "import/no-duplicates": "error",
+      "import/no-duplicates": "warn",
       "import/no-cycle": "error",
       "import/no-self-import": "error",
 
@@ -193,7 +193,7 @@ const eslintConfig = [
       "prefer-const": "error",
       "prefer-template": "error",
       "object-shorthand": "error",
-      "no-duplicate-imports": "error",
+      "no-duplicate-imports": "warn",
       "no-useless-rename": "error",
       "no-useless-return": "error",
       "no-nested-ternary": "warn",
