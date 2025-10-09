@@ -1,0 +1,14 @@
+{
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "develop": true,
+      "release/*": true,
+      "hotfix/*": true
+    }
+  },
+  "github": {
+    "silent": false,
+    "autoAlias": true
+  }
+}
