@@ -8,7 +8,7 @@ import type { User } from "@/types/auth";
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   // TODO: Replace with structured logging (FE-159)
-  // console.log(`[MIDDLEWARE START] Request to: ${pathname}`);
+  console.log(`[MIDDLEWARE START] Request to: ${pathname}`);
 
   // Skip middleware for static files, API auth routes, and health checks
   if (
@@ -28,6 +28,18 @@ export async function middleware(request: NextRequest) {
     // console.log(
     //   `[MIDDLEWARE] Path: ${pathname}, User: ${user ? `${user.email} (${user.role})` : "none"}, Session: ${!!session}`
     // );
+
+    // SPECIAL CASE: Root route - redirect based on auth status
+    // This prevents authentication bypass via root route (FE-229)
+    if (pathname === "/") {
+      if (user) {
+        // Authenticated users → dashboard
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      } else {
+        // Unauthenticated users → login
+        return NextResponse.redirect(new URL("/login", request.url));
+      }
+    }
 
     // Handle public routes
     if (matchesPath(pathname, authRoutes.public)) {
