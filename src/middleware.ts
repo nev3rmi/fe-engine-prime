@@ -15,6 +15,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon.ico") ||
     pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/avatar") || // Avatar API routes are public
     pathname === "/api/health"
   ) {
     return NextResponse.next();
