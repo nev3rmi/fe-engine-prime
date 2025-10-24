@@ -10,35 +10,35 @@
  * - Chat history
  */
 
-'use client';
+"use client";
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback } from "react";
 
-import { AlertCircle, Trash2, Settings } from 'lucide-react';
+import { AlertCircle, Trash2, Settings } from "lucide-react";
 
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useLipSync } from '@/lib/hooks/use-lip-sync';
-import { useVoiceConversation } from '@/lib/hooks/use-voice-conversation';
-import { cn } from '@/lib/utils';
-import type { ConversationalAvatarProps } from '@/types/avatar';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLipSync } from "@/lib/hooks/use-lip-sync";
+import { useVoiceConversation } from "@/lib/hooks/use-voice-conversation";
+import { cn } from "@/lib/utils";
+import type { ConversationalAvatarProps } from "@/types/avatar";
 
-import { AvatarDisplay } from './AvatarDisplay';
-import { ChatHistory } from './ChatHistory';
-import { VoiceControls } from './VoiceControls';
+import { AvatarDisplay } from "./AvatarDisplay";
+import { ChatHistory } from "./ChatHistory";
+import { VoiceControls } from "./VoiceControls";
 
 export function ConversationalAvatar({
-  aiPersonality,
+  aiPersonality: _aiPersonality,
   voiceId,
-  avatarStyle = 'simple',
+  avatarStyle = "simple",
   autoStart = false,
   showChatHistory = true,
   enableVoiceInput = true,
-  enableTextInput = true,
+  enableTextInput: _enableTextInput = true,
   className,
-  userId = 'demo-user',
+  userId = "demo-user",
   onConversationStart,
   onConversationEnd,
   onMessage,
@@ -94,12 +94,44 @@ export function ConversationalAvatar({
   }, [clearConversation]);
 
   return (
-    <div className={cn('w-full max-w-4xl mx-auto space-y-6', className)}>
+    <div className={cn("mx-auto w-full max-w-4xl space-y-6", className)}>
       {/* Error display */}
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>
+            <div className="space-y-2">
+              <p className="font-semibold">{error}</p>
+              {(error.includes("not-allowed") || error.includes("permission-denied")) && (
+                <div className="mt-2 space-y-1 text-sm">
+                  <p>🎤 Microphone access was denied. To use voice features:</p>
+                  <ul className="list-inside list-disc space-y-1 pl-2">
+                    <li>
+                      <strong>Chrome/Edge:</strong> Click the 🔒 lock icon in the address bar →
+                      Microphone → Allow
+                    </li>
+                    <li>
+                      <strong>Safari:</strong> Safari menu → Settings for This Website → Microphone
+                      → Allow
+                    </li>
+                    <li>
+                      <strong>Firefox:</strong> Click the 🔒 lock icon → Connection → More
+                      Information → Permissions → Allow microphone
+                    </li>
+                  </ul>
+                  <p className="mt-2">After allowing, reload the page and try again.</p>
+                </div>
+              )}
+              {!error.includes("not-allowed") &&
+                !error.includes("permission-denied") &&
+                error.includes("not supported") && (
+                  <p className="mt-2 text-sm">
+                    ℹ️ Your browser doesn&apos;t support voice input. Please use Chrome, Edge, or
+                    Safari for voice features.
+                  </p>
+                )}
+            </div>
+          </AlertDescription>
         </Alert>
       )}
 
@@ -109,9 +141,7 @@ export function ConversationalAvatar({
           <div className="flex items-start justify-between">
             <div>
               <CardTitle>AI Conversational Avatar</CardTitle>
-              <CardDescription>
-                Speak naturally with the AI assistant
-              </CardDescription>
+              <CardDescription>Speak naturally with the AI assistant</CardDescription>
             </div>
             <div className="flex items-center gap-2">
               {messages.length > 0 && (
@@ -121,7 +151,7 @@ export function ConversationalAvatar({
                   onClick={handleClearConversation}
                   disabled={isListening || isSpeaking || isThinking}
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
+                  <Trash2 className="mr-2 h-4 w-4" />
                   Clear
                 </Button>
               )}
@@ -133,8 +163,8 @@ export function ConversationalAvatar({
 
           {/* Connection status */}
           {conversationId && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            <div className="text-muted-foreground flex items-center gap-2 text-xs">
+              <div className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
               <span>Connected</span>
               <span className="text-xs opacity-50">ID: {conversationId.slice(0, 8)}...</span>
             </div>
@@ -148,7 +178,7 @@ export function ConversationalAvatar({
               <TabsTrigger value="history">
                 History
                 {messages.length > 0 && (
-                  <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-primary/20">
+                  <span className="bg-primary/20 ml-2 rounded-full px-2 py-0.5 text-xs">
                     {messages.length}
                   </span>
                 )}
@@ -156,7 +186,7 @@ export function ConversationalAvatar({
             </TabsList>
 
             {/* Avatar Tab */}
-            <TabsContent value="avatar" className="space-y-6 mt-6">
+            <TabsContent value="avatar" className="mt-6 space-y-6">
               {/* Avatar display */}
               <div className="flex justify-center py-8">
                 <AvatarDisplay
@@ -168,8 +198,8 @@ export function ConversationalAvatar({
 
               {/* Current transcript */}
               {transcript && (
-                <div className="p-4 rounded-lg bg-muted/50 border-2 border-primary/30">
-                  <p className="text-sm text-muted-foreground mb-1">You're saying:</p>
+                <div className="bg-muted/50 border-primary/30 rounded-lg border-2 p-4">
+                  <p className="text-muted-foreground mb-1 text-sm">You&apos;re saying:</p>
                   <p className="text-base">{transcript}</p>
                 </div>
               )}
@@ -188,11 +218,11 @@ export function ConversationalAvatar({
               )}
 
               {/* Instructions */}
-              <div className="text-center text-sm text-muted-foreground">
+              <div className="text-muted-foreground text-center text-sm">
                 {!isListening && !isSpeaking && !isThinking && (
                   <>
                     <p>Click the microphone button to start talking</p>
-                    <p className="text-xs mt-1">
+                    <p className="mt-1 text-xs">
                       The avatar will listen, think, and respond with voice
                     </p>
                   </>
@@ -200,9 +230,7 @@ export function ConversationalAvatar({
                 {isListening && (
                   <p className="animate-pulse">🎤 Listening to you... speak naturally!</p>
                 )}
-                {isThinking && (
-                  <p className="animate-pulse">🤔 Processing your message...</p>
-                )}
+                {isThinking && <p className="animate-pulse">🤔 Processing your message...</p>}
                 {isSpeaking && (
                   <p className="animate-pulse">🗣️ Avatar is speaking... please wait</p>
                 )}
@@ -212,33 +240,29 @@ export function ConversationalAvatar({
             {/* History Tab */}
             <TabsContent value="history" className="mt-6">
               {showChatHistory && (
-                <ChatHistory
-                  messages={messages}
-                  maxHeight="500px"
-                  autoScroll={true}
-                />
+                <ChatHistory messages={messages} maxHeight="500px" autoScroll={true} />
               )}
             </TabsContent>
           </Tabs>
 
           {/* Statistics */}
           {messages.length > 0 && (
-            <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+            <div className="grid grid-cols-3 gap-4 border-t pt-4">
               <div className="text-center">
                 <div className="text-2xl font-bold">{messages.length}</div>
-                <div className="text-xs text-muted-foreground">Messages</div>
+                <div className="text-muted-foreground text-xs">Messages</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold">
-                  {messages.filter((m) => m.role === 'user').length}
+                  {messages.filter(m => m.role === "user").length}
                 </div>
-                <div className="text-xs text-muted-foreground">Your messages</div>
+                <div className="text-muted-foreground text-xs">Your messages</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold">
-                  {messages.filter((m) => m.role === 'assistant').length}
+                  {messages.filter(m => m.role === "assistant").length}
                 </div>
-                <div className="text-xs text-muted-foreground">AI responses</div>
+                <div className="text-muted-foreground text-xs">AI responses</div>
               </div>
             </div>
           )}
@@ -246,12 +270,12 @@ export function ConversationalAvatar({
       </Card>
 
       {/* Technical info (dev mode) */}
-      {process.env.NODE_ENV === 'development' && (
+      {process.env.NODE_ENV === "development" && (
         <Card className="bg-muted/30">
           <CardHeader>
             <CardTitle className="text-sm">Debug Info</CardTitle>
           </CardHeader>
-          <CardContent className="text-xs space-y-1 font-mono">
+          <CardContent className="space-y-1 font-mono text-xs">
             <div>State: {currentState}</div>
             <div>Viseme: {currentViseme}</div>
             <div>Listening: {String(isListening)}</div>
