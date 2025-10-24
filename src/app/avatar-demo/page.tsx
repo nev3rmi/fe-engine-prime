@@ -6,11 +6,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+
+import { CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+
 import { ConversationalAvatar } from '@/components/avatar/ConversationalAvatar';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function AvatarDemoPage() {
   const [eventLog, setEventLog] = useState<string[]>([]);

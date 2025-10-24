@@ -13,18 +13,21 @@
 'use client';
 
 import React, { useEffect, useCallback } from 'react';
+
 import { AlertCircle, Trash2, Settings } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
-import { useVoiceConversation } from '@/lib/hooks/use-voice-conversation';
 import { useLipSync } from '@/lib/hooks/use-lip-sync';
-import { AvatarDisplay } from './AvatarDisplay';
-import { VoiceControls } from './VoiceControls';
-import { ChatHistory } from './ChatHistory';
+import { useVoiceConversation } from '@/lib/hooks/use-voice-conversation';
+import { cn } from '@/lib/utils';
 import type { ConversationalAvatarProps } from '@/types/avatar';
+
+import { AvatarDisplay } from './AvatarDisplay';
+import { ChatHistory } from './ChatHistory';
+import { VoiceControls } from './VoiceControls';
 
 export function ConversationalAvatar({
   aiPersonality,
