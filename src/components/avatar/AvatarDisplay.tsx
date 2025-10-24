@@ -51,9 +51,10 @@ function SimpleAvatar({
             cx="50"
             cy="50"
             r="40"
-            fill="hsl(var(--primary) / 0.3)"
-            stroke="hsl(var(--primary) / 0.5)"
+            fill="#e0e7ff"
+            stroke="#6366f1"
             strokeWidth="2"
+            className="dark:fill-indigo-900/30 dark:stroke-indigo-500"
           />
 
           {/* Eyes */}
@@ -61,25 +62,31 @@ function SimpleAvatar({
             cx="35"
             cy="40"
             r="3"
-            fill="hsl(var(--primary))"
-            className={cn("transition-all duration-200", state === "thinking" && "animate-pulse")}
+            fill="#3730a3"
+            className={cn(
+              "transition-all duration-200 dark:fill-indigo-300",
+              state === "thinking" && "animate-pulse"
+            )}
           />
           <circle
             cx="65"
             cy="40"
             r="3"
-            fill="hsl(var(--primary))"
-            className={cn("transition-all duration-200", state === "thinking" && "animate-pulse")}
+            fill="#3730a3"
+            className={cn(
+              "transition-all duration-200 dark:fill-indigo-300",
+              state === "thinking" && "animate-pulse"
+            )}
           />
 
           {/* Mouth - animated based on viseme */}
           <path
             d={MOUTH_SHAPES[viseme]}
-            stroke="hsl(var(--primary))"
+            stroke="#3730a3"
             strokeWidth="2.5"
             strokeLinecap="round"
             fill="none"
-            className="transition-all duration-100"
+            className="transition-all duration-100 dark:stroke-indigo-300"
           />
 
           {/* Audio waves when speaking */}
