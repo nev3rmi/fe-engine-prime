@@ -26,6 +26,9 @@ export interface UseVoiceConversationOptions {
   onError?: (error: Error) => void;
   onAudioStart?: (duration: number) => void;
   autoRestart?: boolean;
+  ttsProvider?: 'server' | 'browser'; // TTS provider selection
+  ttsLanguage?: string; // Language for TTS (e.g., 'vi-VN', 'en-US')
+  browserVoiceName?: string; // Specific browser voice name to use
 }
 
 export function useVoiceConversation(
@@ -38,6 +41,9 @@ export function useVoiceConversation(
     onError,
     onAudioStart,
     autoRestart = false,
+    ttsProvider = 'browser', // Default to browser TTS (free, no setup)
+    ttsLanguage = 'vi-VN', // Default to Vietnamese
+    browserVoiceName, // Specific voice name to use
   } = options;
 
   // State
@@ -387,9 +393,9 @@ export function useVoiceConversation(
   );
 
   /**
-   * Generate speech
+   * Generate speech using server TTS (original function)
    */
-  const generateSpeech = useCallback(
+  const generateAndPlayAudio = useCallback(
     async (text: string) => {
       try {
         // Clean up old audio FIRST to prevent multiple onended handlers
@@ -475,6 +481,138 @@ export function useVoiceConversation(
       }
     },
     [voiceSettings, onAudioStart, scheduleRestart, clearRestartTimeout]
+  );
+
+  /**
+   * Generate and play audio using Browser TTS (Web Speech Synthesis API)
+   */
+  const generateAndPlayAudioBrowser = useCallback(
+    async (text: string) => {
+      try {
+        console.log("[Browser TTS] Generating speech:", text);
+
+        // Check if browser TTS is supported
+        if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+          throw new Error('Browser TTS not supported');
+        }
+
+        // Stop any ongoing playback
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current = null;
+        }
+
+        // Cancel any ongoing browser speech
+        window.speechSynthesis.cancel();
+
+        // Stop mic before speaking
+        clearRestartTimeout();
+        if (recognitionRef.current) {
+          try {
+            recognitionRef.current.stop();
+          } catch (e) {
+            // Ignore
+          }
+        }
+        setIsListening(false);
+        setIsSpeaking(true);
+
+        // Create utterance
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = ttsLanguage;
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+
+        // Select appropriate voice
+        const voices = window.speechSynthesis.getVoices();
+        let selectedVoice: SpeechSynthesisVoice | undefined;
+
+        // Priority 1: Use specific voice name if provided
+        if (browserVoiceName) {
+          selectedVoice = voices.find(v => v.name === browserVoiceName);
+          if (selectedVoice) {
+            console.log(`[Browser TTS] Using specified voice: ${selectedVoice.name}`);
+          }
+        }
+
+        // Priority 2: Find voice by language
+        if (!selectedVoice) {
+          const languageCode = ttsLanguage.split('-')[0] || ttsLanguage; // 'vi' from 'vi-VN'
+          selectedVoice = voices.find(v => v.lang.startsWith(languageCode));
+        }
+
+        // Priority 3: Fallback to any voice
+        if (!selectedVoice && voices.length > 0) {
+          selectedVoice = voices[0];
+        }
+
+        if (selectedVoice) {
+          utterance.voice = selectedVoice;
+          console.log(`[Browser TTS] Using voice: ${selectedVoice.name} (${selectedVoice.lang})`);
+        }
+
+        // Estimate duration (rough approximation: ~150 words per minute)
+        const words = text.split(/\s+/).length;
+        const estimatedDuration = (words / 150) * 60 * 1000; // milliseconds
+        console.log("[Browser TTS] Estimated duration:", estimatedDuration, "ms");
+
+        // Start lip sync with estimated duration
+        onAudioStart?.(estimatedDuration);
+
+        // Set up event handlers
+        utterance.onstart = () => {
+          console.log("[Browser TTS] Started speaking");
+        };
+
+        utterance.onend = () => {
+          console.log("[Browser TTS] Finished speaking");
+          setIsSpeaking(false);
+
+          // Schedule restart with delay
+          scheduleRestart(800);
+        };
+
+        utterance.onerror = (event) => {
+          console.error("[Browser TTS] Error:", event.error);
+          setIsSpeaking(false);
+          throw new Error(`Browser TTS error: ${event.error}`);
+        };
+
+        // Speak
+        window.speechSynthesis.speak(utterance);
+
+        return 'browser-tts'; // Return identifier instead of URL
+      } catch (err) {
+        console.error("Browser TTS error:", err);
+        setIsSpeaking(false);
+        throw err;
+      }
+    },
+    [ttsLanguage, browserVoiceName, onAudioStart, scheduleRestart, clearRestartTimeout]
+  );
+
+  /**
+   * Generate speech (routes to correct TTS provider)
+   */
+  const generateSpeech = useCallback(
+    async (text: string) => {
+      try {
+        console.log(`[TTS] Using provider: ${ttsProvider}`);
+
+        // Route to correct TTS provider
+        if (ttsProvider === 'browser') {
+          await generateAndPlayAudioBrowser(text);
+        } else {
+          await generateAndPlayAudio(text);
+        }
+      } catch (err) {
+        console.error("Generate speech error:", err);
+        setError(err instanceof Error ? err.message : "Speech generation failed");
+        onError?.(err instanceof Error ? err : new Error("Speech generation failed"));
+      }
+    },
+    [ttsProvider, generateAndPlayAudioBrowser, generateAndPlayAudio, onError]
   );
 
   /**

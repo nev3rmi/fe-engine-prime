@@ -17,6 +17,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 export default function AvatarDemoPage() {
   const [eventLog, setEventLog] = useState<string[]>([]);
   const [isMounted, setIsMounted] = useState(false);
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoiceName, setSelectedVoiceName] = useState<string>('');
 
   // Log events for debugging
   const logEvent = (event: string) => {
@@ -28,11 +30,66 @@ export default function AvatarDemoPage() {
     setIsMounted(true);
   }, []);
 
+  // Load available voices
+  useEffect(() => {
+    if (!isMounted) return;
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+
+    const loadVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      setAvailableVoices(voices);
+
+      // Auto-select HoaiMy voice if available, otherwise first Vietnamese voice
+      if (voices.length > 0 && !selectedVoiceName) {
+        const vietnameseVoices = voices.filter((v) => v.lang.startsWith('vi'));
+
+        // Priority 1: HoaiMy (female)
+        let defaultVoice = vietnameseVoices.find((v) =>
+          v.name.includes('HoaiMy') || v.name.includes('Hoài My')
+        );
+
+        // Priority 2: Any Vietnamese female voice
+        if (!defaultVoice) {
+          defaultVoice = vietnameseVoices.find((v) =>
+            v.name.includes('Female') || v.name.includes('Linh') || v.name.includes('My')
+          );
+        }
+
+        // Priority 3: Any Vietnamese voice
+        if (!defaultVoice && vietnameseVoices.length > 0) {
+          defaultVoice = vietnameseVoices[0];
+        }
+
+        if (defaultVoice) {
+          setSelectedVoiceName(defaultVoice.name);
+          console.log('[Avatar Demo] Auto-selected voice:', defaultVoice.name);
+        }
+      }
+    };
+
+    // Load voices immediately
+    loadVoices();
+
+    // Some browsers need to wait for voices to load
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    return () => {
+      if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = null;
+      }
+    };
+  }, [isMounted, selectedVoiceName]);
+
   // Check configuration status
   const isDifyConfigured = true; // Dify API is hardcoded in the architecture
   const isElevenLabsConfigured = !!process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY;
   const isWebSpeechSupported = isMounted &&
     (('webkitSpeechRecognition' in window) || ('SpeechRecognition' in window));
+
+  const vietnameseVoices = availableVoices.filter((v) => v.lang.startsWith('vi'));
+  const selectedVoice = availableVoices.find((v) => v.name === selectedVoiceName);
 
   const allConfigured = isDifyConfigured && isWebSpeechSupported;
 
@@ -50,7 +107,7 @@ export default function AvatarDemoPage() {
           <div className="flex items-center justify-center gap-2 flex-wrap">
             <Badge variant="secondary">🎤 Web Speech API</Badge>
             <Badge variant="secondary">🤖 Dify AI</Badge>
-            <Badge variant="secondary">🔊 ElevenLabs TTS</Badge>
+            <Badge variant="secondary">🔊 Browser TTS</Badge>
             <Badge variant="secondary">👄 Lip Sync</Badge>
           </div>
         </div>
@@ -93,19 +150,50 @@ export default function AvatarDemoPage() {
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-sm">ElevenLabs TTS API</span>
-              {isElevenLabsConfigured ? (
+              <span className="text-sm">Vietnamese Voices Available</span>
+              {vietnameseVoices.length > 0 ? (
                 <Badge variant="default" className="gap-1">
                   <CheckCircle2 className="h-3 w-3" />
-                  Configured
+                  {vietnameseVoices.length} voices
                 </Badge>
               ) : (
-                <Badge variant="secondary" className="gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  Not Configured (Optional)
+                <Badge variant="destructive" className="gap-1">
+                  <XCircle className="h-3 w-3" />
+                  No voices
                 </Badge>
               )}
             </div>
+
+            {/* Voice Selector */}
+            {vietnameseVoices.length > 0 && (
+              <div className="pt-2 border-t">
+                <label className="block text-sm font-medium mb-2">
+                  Select Vietnamese Voice
+                </label>
+                <select
+                  value={selectedVoiceName}
+                  onChange={(e) => setSelectedVoiceName(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                >
+                  {vietnameseVoices.map((voice) => (
+                    <option key={voice.name} value={voice.name}>
+                      {voice.name} ({voice.lang})
+                      {voice.name.includes('HoaiMy') || voice.name.includes('Hoài My') ? ' 👩 Female' : ''}
+                      {voice.name.includes('An') || voice.name.includes('NamMinh') ? ' 👨 Male' : ''}
+                      {voice.localService ? ' 📍' : ' ☁️'}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {selectedVoice && (
+                    <>
+                      Selected: <strong>{selectedVoice.name}</strong>
+                      {selectedVoice.localService ? ' (Local voice)' : ' (Cloud voice - requires internet)'}
+                    </>
+                  )}
+                </p>
+              </div>
+            )}
 
             {!allConfigured && (
               <Alert>
@@ -117,8 +205,8 @@ export default function AvatarDemoPage() {
                   {!isDifyConfigured && (
                     <p>Dify API key is not configured. Please check your environment variables.</p>
                   )}
-                  {!isElevenLabsConfigured && (
-                    <p>ElevenLabs API key is not configured. TTS features will not work.</p>
+                  {vietnameseVoices.length === 0 && (
+                    <p>No Vietnamese voices found. Please install Vietnamese language pack or try Microsoft Edge "Read Aloud" trick.</p>
                   )}
                 </AlertDescription>
               </Alert>
@@ -134,6 +222,7 @@ export default function AvatarDemoPage() {
           showChatHistory={true}
           enableVoiceInput={true}
           enableTextInput={true}
+          browserVoiceName={selectedVoiceName || undefined}
           onConversationStart={() => logEvent('Conversation started')}
           onConversationEnd={() => logEvent('Conversation ended')}
           onMessage={(message) => logEvent(`Message: ${message.role} - ${message.content.slice(0, 50)}...`)}
@@ -147,41 +236,40 @@ export default function AvatarDemoPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <h3 className="font-semibold mb-2">Step 1: Start Conversation</h3>
+              <h3 className="font-semibold mb-2">Step 1: Select Voice (Above)</h3>
+              <p className="text-sm text-muted-foreground">
+                Choose your preferred Vietnamese voice from the dropdown above. HoaiMy 👩 is female, An/NamMinh 👨 is male.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold mb-2">Step 2: Start Conversation</h3>
               <p className="text-sm text-muted-foreground">
                 Click the microphone button to start the conversation. The avatar will begin listening to you.
               </p>
             </div>
 
             <div>
-              <h3 className="font-semibold mb-2">Step 2: Speak Naturally</h3>
+              <h3 className="font-semibold mb-2">Step 3: Speak Naturally</h3>
               <p className="text-sm text-muted-foreground">
                 Speak your question or message clearly. The system will transcribe your speech in real-time.
               </p>
             </div>
 
             <div>
-              <h3 className="font-semibold mb-2">Step 3: Wait for Response</h3>
+              <h3 className="font-semibold mb-2">Step 4: Listen to Response</h3>
               <p className="text-sm text-muted-foreground">
-                The AI will process your message (avatar shows "thinking" state), generate a response,
-                and speak it back to you with lip sync animation.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold mb-2">Step 4: Continue Conversation</h3>
-              <p className="text-sm text-muted-foreground">
-                After the avatar finishes speaking, it will automatically start listening again for your next message.
+                The AI will process your message, generate a response, and speak it back to you using your selected voice with lip sync animation.
               </p>
             </div>
 
             <div className="pt-4 border-t">
               <h3 className="font-semibold mb-2">Tips</h3>
               <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                <li>Change voice anytime using the dropdown above</li>
                 <li>Speak clearly and at a normal pace</li>
                 <li>Wait for the avatar to finish speaking before responding</li>
                 <li>Use the "History" tab to review past messages</li>
-                <li>Click "Clear" to start a new conversation</li>
                 <li>The avatar's mouth will sync with the speech audio</li>
               </ul>
             </div>
@@ -217,19 +305,19 @@ export default function AvatarDemoPage() {
               <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
                 <li>User speaks → Web Speech API transcribes to text</li>
                 <li>Text sent to Dify Chat API → AI generates response</li>
-                <li>Response text sent to ElevenLabs → Audio generated</li>
-                <li>Audio analyzed for visemes → Avatar lip sync</li>
+                <li>Response text → Browser TTS generates speech</li>
+                <li>Lip sync animation synchronized with audio</li>
                 <li>Audio plays + Avatar mouth animates in real-time</li>
               </ol>
             </div>
 
             <div>
-              <h3 className="font-semibold mb-2">Expected Latency</h3>
+              <h3 className="font-semibold mb-2">Current Configuration</h3>
               <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                <li>Speech Recognition: ~500ms</li>
-                <li>AI Processing (Dify): 1-2 seconds</li>
-                <li>TTS Generation (ElevenLabs): 500ms-1s</li>
-                <li>Total: 2-3.5 seconds per response</li>
+                <li>TTS Provider: Browser TTS (free, offline)</li>
+                <li>Selected Voice: {selectedVoice?.name || 'None'}</li>
+                <li>Voice Language: {selectedVoice?.lang || 'N/A'}</li>
+                <li>Voice Type: {selectedVoice?.localService ? 'Local (offline)' : 'Cloud (online)'}</li>
               </ul>
             </div>
           </CardContent>

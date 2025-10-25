@@ -285,6 +285,15 @@ export interface ConversationalAvatarProps {
   /** User identifier for Dify */
   userId?: string;
 
+  /** TTS provider selection */
+  ttsProvider?: 'server' | 'browser';
+
+  /** TTS language code */
+  ttsLanguage?: string;
+
+  /** Browser TTS voice name (for browser provider) */
+  browserVoiceName?: string;
+
   /** Callback when conversation starts */
   onConversationStart?: () => void;
 

@@ -39,6 +39,7 @@ export function ConversationalAvatar({
   enableTextInput: _enableTextInput = true,
   className,
   userId = "demo-user",
+  browserVoiceName,
   onConversationStart,
   onConversationEnd,
   onMessage,
@@ -67,6 +68,9 @@ export function ConversationalAvatar({
     onError,
     onAudioStart: startLipSync, // Connect TTS audio to lip sync animation
     autoRestart: true, // Auto-restart listening after response
+    ttsProvider: 'browser', // Use browser TTS (free, works offline with system voices)
+    ttsLanguage: 'vi-VN', // Vietnamese language
+    browserVoiceName, // Specific browser voice to use
   });
 
   // Auto-start conversation if requested
