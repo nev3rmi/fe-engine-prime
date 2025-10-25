@@ -6,7 +6,8 @@
  * 3. ElevenLabs for TTS (avatar speaks)
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from "react";
+
 import type {
   Message,
   VoiceConversationState,
@@ -14,11 +15,12 @@ import type {
   VoiceSettings,
   AvatarState,
   DifyEvent,
-} from '@/types/avatar';
+} from "@/types/avatar";
 
 // Check if Web Speech API is available
-const isWebSpeechSupported = typeof window !== 'undefined' &&
-  ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window);
+const isWebSpeechSupported =
+  typeof window !== "undefined" &&
+  ("webkitSpeechRecognition" in window || "SpeechRecognition" in window);
 
 export interface UseVoiceConversationOptions {
   userId?: string;
@@ -32,7 +34,7 @@ export function useVoiceConversation(
   options: UseVoiceConversationOptions = {}
 ): VoiceConversationState & VoiceConversationActions {
   const {
-    userId = 'default-user',
+    userId = "default-user",
     voiceSettings: initialVoiceSettings,
     onMessage,
     onError,
@@ -44,13 +46,13 @@ export function useVoiceConversation(
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [transcript, setTranscript] = useState('');
+  const [transcript, setTranscript] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(
     initialVoiceSettings || {
-      voiceId: process.env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM',
+      voiceId: process.env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID || "21m00Tcm4TlvDq8ikWAM",
       stability: 0.5,
       similarityBoost: 0.75,
     }
@@ -63,19 +65,19 @@ export function useVoiceConversation(
 
   // Computed state
   const currentState: AvatarState = isSpeaking
-    ? 'speaking'
+    ? "speaking"
     : isThinking
-      ? 'thinking'
+      ? "thinking"
       : isListening
-        ? 'listening'
-        : 'idle';
+        ? "listening"
+        : "idle";
 
   /**
    * Initialize Web Speech API
    */
   const initializeSpeechRecognition = useCallback(() => {
     if (!isWebSpeechSupported) {
-      const errorMsg = 'Web Speech API is not supported in this browser';
+      const errorMsg = "Web Speech API is not supported in this browser";
       setError(errorMsg);
       onError?.(new Error(errorMsg));
       return null;
@@ -86,10 +88,10 @@ export function useVoiceConversation(
 
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = 'en-US';
+    recognition.lang = "en-US";
 
     recognition.onstart = () => {
-      console.log('Speech recognition started');
+      console.log("Speech recognition started");
       setIsListening(true);
       setError(null);
     };
@@ -98,7 +100,9 @@ export function useVoiceConversation(
       const current = event.resultIndex;
       const transcriptResult = event.results[current];
 
-      if (!transcriptResult || !transcriptResult[0]) return;
+      if (!transcriptResult?.[0]) {
+        return;
+      }
 
       const transcriptText = transcriptResult[0].transcript;
 
@@ -106,26 +110,26 @@ export function useVoiceConversation(
 
       // If final result, process the message
       if (transcriptResult.isFinal) {
-        console.log('Final transcript:', transcriptText);
+        console.log("Final transcript:", transcriptText);
         handleUserMessage(transcriptText);
       }
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      console.error('Speech recognition error:', event.error);
+      console.error("Speech recognition error:", event.error);
       const errorMsg = `Speech recognition error: ${event.error}`;
       setError(errorMsg);
       onError?.(new Error(errorMsg));
 
       // Stop trying if permission denied or not allowed
-      if (event.error === 'not-allowed' || event.error === 'permission-denied') {
+      if (event.error === "not-allowed" || event.error === "permission-denied") {
         isActiveRef.current = false;
         setIsListening(false);
         return;
       }
 
       // Auto-restart on certain recoverable errors
-      if (event.error === 'no-speech' || event.error === 'audio-capture') {
+      if (event.error === "no-speech" || event.error === "audio-capture") {
         setTimeout(() => {
           if (isActiveRef.current) {
             recognition.start();
@@ -135,7 +139,7 @@ export function useVoiceConversation(
     };
 
     recognition.onend = () => {
-      console.log('Speech recognition ended');
+      console.log("Speech recognition ended");
       setIsListening(false);
 
       // Auto-restart if still active
@@ -156,20 +160,22 @@ export function useVoiceConversation(
    */
   const handleUserMessage = useCallback(
     async (text: string) => {
-      if (!text || text.trim().length === 0) return;
+      if (!text || text.trim().length === 0) {
+        return;
+      }
 
       setIsProcessing(true);
-      setTranscript('');
+      setTranscript("");
 
       // Add user message
       const userMessage: Message = {
         id: Date.now().toString(),
-        role: 'user',
+        role: "user",
         content: text,
         timestamp: Date.now(),
       };
 
-      setMessages((prev) => [...prev, userMessage]);
+      setMessages(prev => [...prev, userMessage]);
       onMessage?.(userMessage);
 
       // Stop listening while processing
@@ -188,7 +194,7 @@ export function useVoiceConversation(
         // Call Dify chat API
         await sendMessage(text);
       } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : 'Failed to process message';
+        const errorMsg = err instanceof Error ? err.message : "Failed to process message";
         setError(errorMsg);
         onError?.(new Error(errorMsg));
       } finally {
@@ -205,10 +211,10 @@ export function useVoiceConversation(
   const sendMessage = useCallback(
     async (text: string) => {
       try {
-        const response = await fetch('/api/avatar/chat', {
-          method: 'POST',
+        const response = await fetch("/api/avatar/chat", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             message: text,
@@ -224,41 +230,48 @@ export function useVoiceConversation(
         // Handle streaming response
         const reader = response.body?.getReader();
         if (!reader) {
-          throw new Error('No response stream');
+          throw new Error("No response stream");
         }
 
         const decoder = new TextDecoder();
-        let buffer = '';
-        let aiResponseText = '';
+        let buffer = "";
+        let aiResponseText = "";
         let newConversationId = conversationId;
-        let messageId = '';
+        let messageId = "";
 
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            break;
+          }
 
           buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
 
           for (const line of lines) {
-            if (line.startsWith('data:')) {
+            if (line.startsWith("data:")) {
               const data = line.slice(5).trim();
-              if (!data) continue;
+              if (!data) {
+                continue;
+              }
 
               try {
                 const event: DifyEvent = JSON.parse(data);
 
-                if (event.event === 'message') {
-                  aiResponseText += event.answer;
+                // Dify sends 'agent_message' events with the answer text
+                if (event.event === "message" || event.event === "agent_message") {
+                  if (event.answer) {
+                    aiResponseText += event.answer;
+                  }
                   messageId = event.message_id;
                   newConversationId = event.conversation_id;
-                } else if (event.event === 'message_end') {
-                  console.log('Message end', event);
+                } else if (event.event === "message_end") {
+                  console.log("Message end", event);
                   newConversationId = event.conversation_id;
                 }
               } catch (e) {
-                console.warn('Failed to parse SSE event:', e);
+                console.warn("Failed to parse SSE event:", e);
               }
             }
           }
@@ -272,18 +285,18 @@ export function useVoiceConversation(
         // Add AI message
         const aiMessage: Message = {
           id: messageId || Date.now().toString(),
-          role: 'assistant',
+          role: "assistant",
           content: aiResponseText,
           timestamp: Date.now(),
         };
 
-        setMessages((prev) => [...prev, aiMessage]);
+        setMessages(prev => [...prev, aiMessage]);
         onMessage?.(aiMessage);
 
         // Generate speech
         await generateSpeech(aiResponseText);
       } catch (err) {
-        console.error('Send message error:', err);
+        console.error("Send message error:", err);
         throw err;
       }
     },
@@ -298,10 +311,10 @@ export function useVoiceConversation(
       try {
         setIsSpeaking(true);
 
-        const response = await fetch('/api/avatar/tts', {
-          method: 'POST',
+        const response = await fetch("/api/avatar/tts", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             text,
@@ -335,8 +348,8 @@ export function useVoiceConversation(
           }
         };
 
-        audio.onerror = (e) => {
-          console.error('Audio playback error:', e);
+        audio.onerror = e => {
+          console.error("Audio playback error:", e);
           setIsSpeaking(false);
           URL.revokeObjectURL(audioUrl);
         };
@@ -345,7 +358,7 @@ export function useVoiceConversation(
 
         return audioUrl;
       } catch (err) {
-        console.error('Generate speech error:', err);
+        console.error("Generate speech error:", err);
         setIsSpeaking(false);
         throw err;
       }
@@ -358,7 +371,8 @@ export function useVoiceConversation(
    */
   const startConversation = useCallback(() => {
     if (!isWebSpeechSupported) {
-      const errorMsg = 'Web Speech API is not supported in this browser. Please use Chrome, Edge, or Safari.';
+      const errorMsg =
+        "Web Speech API is not supported in this browser. Please use Chrome, Edge, or Safari.";
       setError(errorMsg);
       onError?.(new Error(errorMsg));
       return;
@@ -375,7 +389,7 @@ export function useVoiceConversation(
       try {
         recognitionRef.current.start();
       } catch (e) {
-        console.warn('Recognition already started');
+        console.warn("Recognition already started");
       }
     }
   }, [initializeSpeechRecognition, onError]);
@@ -403,7 +417,7 @@ export function useVoiceConversation(
     setIsSpeaking(false);
     setIsThinking(false);
     setIsProcessing(false);
-    setTranscript('');
+    setTranscript("");
   }, []);
 
   /**
@@ -435,7 +449,7 @@ export function useVoiceConversation(
       try {
         recognitionRef.current.start();
       } catch (e) {
-        console.warn('Recognition already started');
+        console.warn("Recognition already started");
       }
     }
   }, []);
@@ -446,7 +460,7 @@ export function useVoiceConversation(
   const clearConversation = useCallback(() => {
     setMessages([]);
     setConversationId(null);
-    setTranscript('');
+    setTranscript("");
     setError(null);
   }, []);
 
@@ -454,7 +468,7 @@ export function useVoiceConversation(
    * Update voice settings
    */
   const updateVoiceSettings = useCallback((settings: Partial<VoiceSettings>) => {
-    setVoiceSettings((prev) => ({ ...prev, ...settings }));
+    setVoiceSettings(prev => ({ ...prev, ...settings }));
   }, []);
 
   // Cleanup on unmount
