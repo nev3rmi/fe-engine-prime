@@ -27,6 +27,7 @@ export interface UseVoiceConversationOptions {
   voiceSettings?: VoiceSettings;
   onMessage?: (message: Message) => void;
   onError?: (error: Error) => void;
+  onAudioStart?: (audioUrl: string) => void; // Called when TTS audio starts playing
   autoRestart?: boolean; // Auto-restart listening after response
 }
 
@@ -38,6 +39,7 @@ export function useVoiceConversation(
     voiceSettings: initialVoiceSettings,
     onMessage,
     onError,
+    onAudioStart,
     autoRestart = false,
   } = options;
 
@@ -356,6 +358,9 @@ export function useVoiceConversation(
 
         await audio.play();
 
+        // Notify that audio has started (for lip sync)
+        onAudioStart?.(audioUrl);
+
         return audioUrl;
       } catch (err) {
         console.error("Generate speech error:", err);
@@ -363,7 +368,7 @@ export function useVoiceConversation(
         throw err;
       }
     },
-    [voiceSettings, autoRestart]
+    [voiceSettings, autoRestart, onAudioStart]
   );
 
   /**
