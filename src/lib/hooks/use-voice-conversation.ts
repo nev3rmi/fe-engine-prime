@@ -65,6 +65,7 @@ export function useVoiceConversation(
   const restartTimeoutRef = useRef<NodeJS.Timeout | null>(null); // NEW: Track restart timeout
   const lastInterimTextRef = useRef<string>("");
   const isRestartingRef = useRef(false); // NEW: Prevent double restart
+  const isProcessingMessageRef = useRef(false); // NEW: Prevent double message processing
 
   // Computed state
   const currentState: AvatarState = isSpeaking
@@ -237,9 +238,16 @@ export function useVoiceConversation(
         return;
       }
 
+      // GUARD: Prevent double message processing
+      if (isProcessingMessageRef.current) {
+        console.log("Already processing a message, skip duplicate:", text);
+        return;
+      }
+
       // Clear any pending restart
       clearRestartTimeout();
 
+      isProcessingMessageRef.current = true;
       setIsProcessing(true);
       setTranscript("");
 
@@ -274,6 +282,7 @@ export function useVoiceConversation(
       } finally {
         setIsThinking(false);
         setIsProcessing(false);
+        isProcessingMessageRef.current = false; // Reset guard
       }
     },
     [onMessage, onError, clearRestartTimeout]
@@ -375,6 +384,15 @@ export function useVoiceConversation(
   const generateSpeech = useCallback(
     async (text: string) => {
       try {
+        // Clean up old audio FIRST to prevent multiple onended handlers
+        if (audioRef.current) {
+          audioRef.current.onended = null;
+          audioRef.current.onerror = null;
+          audioRef.current.onloadedmetadata = null;
+          audioRef.current.pause();
+          audioRef.current = null;
+        }
+
         // Stop mic before speaking
         clearRestartTimeout();
         if (recognitionRef.current) {
@@ -473,6 +491,7 @@ export function useVoiceConversation(
    */
   const stopConversation = useCallback(() => {
     isActiveRef.current = false;
+    isProcessingMessageRef.current = false;
     clearRestartTimeout();
 
     if (recognitionRef.current) {
@@ -565,6 +584,7 @@ export function useVoiceConversation(
         clearTimeout(restartTimeoutRef.current);
       }
       isActiveRef.current = false;
+      isProcessingMessageRef.current = false;
     };
   }, []);
 

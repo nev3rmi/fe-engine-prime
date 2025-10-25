@@ -1,9 +1,12 @@
 # Bug Analysis: Double Recording Issue
 
-## User Report
+## User Reports
 
-"now it record double. Please carefully review one before give it back to me.
-The system have many bugs, review root cause line by line"
+**First Report:** "now it record double. Please carefully review one before give
+it back to me. The system have many bugs, review root cause line by line"
+
+**Second Report (After Initial Fix):** "The problem is that why it record double
+time, it looks like after me speak it record double time"
 
 ## Line-by-Line Analysis Findings
 
@@ -339,6 +342,134 @@ useEffect(() => {
 - [ ] Check browser console for "Already restarting, skip" (shouldn't appear
       often)
 - [ ] Multiple conversations → no accumulation of timeouts
+
+---
+
+## 🔴 BUG 6: Multiple Audio Elements with Active Event Handlers (ADDITIONAL FIX - 2025-10-25)
+
+**Root Cause:** Old audio elements not cleaned up before creating new ones
+
+**Location:** `generateSpeech()` function (line 408-409)
+
+```typescript
+// BUGGY CODE:
+const audio = new Audio(audioUrl);
+audioRef.current = audio; // ← Overwrites ref but old audio still exists!
+
+audio.onended = () => {
+  scheduleRestart(800); // ← OLD audio also has this handler!
+};
+```
+
+**Why This Causes Double Recording:**
+
+1. First conversation turn → creates Audio #1 with `onended` handler
+2. Second conversation turn → creates Audio #2, but Audio #1 still exists
+3. Both audio elements have active `onended` handlers
+4. When both finish playing (or overlap), BOTH handlers fire
+5. Each handler calls `scheduleRestart(800)`
+6. Even though `scheduleRestart()` clears old timeout, if they fire
+   simultaneously, race condition occurs
+7. Result: TWO restart timeouts, microphone starts TWICE
+
+**Fix Applied:**
+
+```typescript
+// Clean up old audio FIRST to prevent multiple onended handlers
+if (audioRef.current) {
+  audioRef.current.onended = null;
+  audioRef.current.onerror = null;
+  audioRef.current.onloadedmetadata = null;
+  audioRef.current.pause();
+  audioRef.current = null;
+}
+
+// Now create new audio safely
+const audio = new Audio(audioUrl);
+audioRef.current = audio;
+```
+
+**Result:**
+
+- Only ONE audio element exists at a time
+- Only ONE `onended` handler can fire
+- No race conditions between multiple audio elements
+- Microphone restarts exactly ONCE
+
+---
+
+## 🔴 BUG 7: No Guard Against Double Message Processing (ADDITIONAL FIX - 2025-10-25)
+
+**Root Cause:** `handleUserMessage` can be called multiple times simultaneously
+
+**Location:** `handleUserMessage()` function (line 234-244)
+
+**Scenario That Triggers Double Processing:**
+
+1. User speaks: "Xin chào"
+2. Interim results come in → auto-finalize timeout set (1.5s)
+3. Browser ALSO sends final result at nearly same time
+4. BOTH auto-finalize timeout AND final result call `handleUserMessage()`
+5. Same message processed TWICE
+6. TWO API calls to Dify
+7. TWO TTS responses
+8. TWO audio playbacks
+9. TWO mic restarts
+
+**BUGGY CODE:**
+
+```typescript
+const handleUserMessage = useCallback(async (text: string) => {
+  if (!text || text.trim().length === 0) {
+    return;
+  }
+
+  // NO GUARD HERE - second call proceeds!
+  setIsProcessing(true);
+  // ... process message
+});
+```
+
+**Fix Applied:**
+
+```typescript
+// Added new ref
+const isProcessingMessageRef = useRef(false);
+
+const handleUserMessage = useCallback(async (text: string) => {
+  if (!text || text.trim().length === 0) {
+    return;
+  }
+
+  // GUARD: Prevent double message processing
+  if (isProcessingMessageRef.current) {
+    console.log("Already processing a message, skip duplicate:", text);
+    return;
+  }
+
+  clearRestartTimeout();
+  isProcessingMessageRef.current = true; // Set guard
+  setIsProcessing(true);
+  setTranscript("");
+
+  try {
+    await sendMessage(text);
+  } catch (err) {
+    // ... error handling
+  } finally {
+    setIsThinking(false);
+    setIsProcessing(false);
+    isProcessingMessageRef.current = false; // Reset guard
+  }
+});
+```
+
+**Result:**
+
+- First call to `handleUserMessage()` sets the guard flag
+- Second call (if it happens) immediately returns
+- Only ONE message is processed
+- Only ONE API call, ONE TTS response, ONE mic restart
 
 ---
 
