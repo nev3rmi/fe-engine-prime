@@ -482,30 +482,37 @@ export function useVoiceConversation(
       return;
     }
 
-    // CRITICAL: Check microphone permission BEFORE trying to start
+    // CORRECT APPROACH: Request microphone permission using getUserMedia FIRST
+    // getUserMedia and SpeechRecognition share the same audio permission
+    // This is more reliable than Permissions API
     try {
-      if (navigator.permissions && navigator.permissions.query) {
-        const permissionStatus = await navigator.permissions.query({
-          name: "microphone" as PermissionName,
-        });
+      console.log("Requesting microphone permission...");
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-        console.log("Microphone permission status:", permissionStatus.state);
-
-        if (permissionStatus.state === "denied") {
-          const errorMsg =
-            "Microphone access was denied. Please click the lock icon in your browser's address bar and allow microphone access, then reload the page.";
-          setError(errorMsg);
-          onError?.(new Error(errorMsg));
-          return;
-        }
-
-        // If "granted" or "prompt", proceed
-        // "prompt" means browser will ask when we call start()
-      }
+      // Permission granted! Stop the stream immediately - we don't need it
+      // We just needed to trigger the permission request
+      stream.getTracks().forEach(track => track.stop());
+      console.log("Microphone permission granted");
     } catch (err) {
-      // Permissions API not supported or query failed
-      // Continue anyway - the browser will show permission dialog
-      console.warn("Could not check microphone permission:", err);
+      // Permission denied or error
+      const error = err as Error;
+      console.error("Microphone permission error:", error);
+
+      if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+        const errorMsg =
+          "Microphone access was denied. Please click the 🔒 lock icon in your browser's address bar, allow microphone access, then reload the page.";
+        setError(errorMsg);
+        onError?.(new Error(errorMsg));
+      } else if (error.name === "NotFoundError") {
+        const errorMsg = "No microphone found. Please connect a microphone and try again.";
+        setError(errorMsg);
+        onError?.(new Error(errorMsg));
+      } else {
+        const errorMsg = `Microphone error: ${error.message}`;
+        setError(errorMsg);
+        onError?.(error);
+      }
+      return;
     }
 
     isActiveRef.current = true;
