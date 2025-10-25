@@ -451,14 +451,21 @@ export function useVoiceConversation(
 
         // Wait for metadata
         await new Promise<void>((resolve, reject) => {
-          audio.onloadedmetadata = () => resolve();
+          audio.onloadedmetadata = () => {
+            console.log("Audio metadata loaded, duration:", audio.duration);
+            resolve();
+          };
           audio.onerror = () => reject(new Error("Failed to load audio metadata"));
         });
 
-        await audio.play();
-
+        // Start lip sync BEFORE playing audio
         const durationMs = audio.duration * 1000;
+        console.log("Starting lip sync with duration:", durationMs, "ms");
         onAudioStart?.(durationMs);
+
+        // Play audio
+        await audio.play();
+        console.log("Audio playing");
 
         return audioUrl;
       } catch (err) {
