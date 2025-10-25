@@ -7,22 +7,22 @@
  * Viseme types for lip sync animation
  * Based on simplified phoneme mapping
  */
-export type Viseme = 'A' | 'E' | 'I' | 'O' | 'U' | 'closed' | 'neutral';
+export type Viseme = "A" | "E" | "I" | "O" | "U" | "closed" | "neutral";
 
 /**
  * Avatar speaking state
  */
-export type AvatarState = 'idle' | 'listening' | 'thinking' | 'speaking';
+export type AvatarState = "idle" | "listening" | "thinking" | "speaking";
 
 /**
  * Avatar visual styles
  */
-export type AvatarStyle = 'simple' | 'realistic' | 'animated';
+export type AvatarStyle = "simple" | "realistic" | "animated";
 
 /**
  * Message role in conversation
  */
-export type MessageRole = 'user' | 'assistant' | 'system';
+export type MessageRole = "user" | "assistant" | "system";
 
 /**
  * Conversation message
@@ -81,12 +81,12 @@ export interface AudioAnalysis {
 export interface DifyChatRequest {
   query: string;
   inputs?: Record<string, unknown>;
-  response_mode: 'streaming' | 'blocking';
+  response_mode: "streaming" | "blocking";
   conversation_id?: string;
   user: string;
   files?: Array<{
-    type: 'image' | 'document' | 'audio' | 'video';
-    transfer_method: 'remote_url' | 'local_file';
+    type: "image" | "document" | "audio" | "video";
+    transfer_method: "remote_url" | "local_file";
     url?: string;
     upload_file_id?: string;
   }>;
@@ -97,21 +97,21 @@ export interface DifyChatRequest {
  * Dify streaming event types
  */
 export type DifyEventType =
-  | 'message'
-  | 'message_end'
-  | 'message_replace'
-  | 'agent_thought'
-  | 'agent_message'
-  | 'tts_message'
-  | 'tts_message_end'
-  | 'error'
-  | 'ping';
+  | "message"
+  | "message_end"
+  | "message_replace"
+  | "agent_thought"
+  | "agent_message"
+  | "tts_message"
+  | "tts_message_end"
+  | "error"
+  | "ping";
 
 /**
  * Dify message event
  */
 export interface DifyMessageEvent {
-  event: 'message';
+  event: "message";
   message_id: string;
   conversation_id: string;
   answer: string;
@@ -122,7 +122,7 @@ export interface DifyMessageEvent {
  * Dify message end event
  */
 export interface DifyMessageEndEvent {
-  event: 'message_end';
+  event: "message_end";
   id: string;
   message_id: string;
   conversation_id: string;
@@ -144,7 +144,7 @@ export interface DifyMessageEndEvent {
  * Dify TTS message event
  */
 export interface DifyTTSMessageEvent {
-  event: 'tts_message' | 'tts_message_end';
+  event: "tts_message" | "tts_message_end";
   conversation_id: string;
   message_id: string;
   task_id: string;
@@ -153,10 +153,21 @@ export interface DifyTTSMessageEvent {
 }
 
 /**
+ * Dify agent message event
+ */
+export interface DifyAgentMessageEvent {
+  event: "agent_message";
+  message_id: string;
+  conversation_id: string;
+  answer: string;
+  created_at: number;
+}
+
+/**
  * Dify error event
  */
 export interface DifyErrorEvent {
-  event: 'error';
+  event: "error";
   message_id?: string;
   status: number;
   code: string;
@@ -169,6 +180,7 @@ export interface DifyErrorEvent {
 export type DifyEvent =
   | DifyMessageEvent
   | DifyMessageEndEvent
+  | DifyAgentMessageEvent
   | DifyTTSMessageEvent
   | DifyErrorEvent;
 
@@ -236,7 +248,7 @@ export interface LipSyncState {
  * Lip sync hook actions
  */
 export interface LipSyncActions {
-  startLipSync: (audioUrl: string, visemes?: VisemeTiming[]) => void;
+  startLipSync: (duration?: number, visemes?: VisemeTiming[]) => void;
   stopLipSync: () => void;
   pauseLipSync: () => void;
   resumeLipSync: () => void;

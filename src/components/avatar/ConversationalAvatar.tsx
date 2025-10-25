@@ -44,6 +44,9 @@ export function ConversationalAvatar({
   onMessage,
   onError,
 }: ConversationalAvatarProps) {
+  // Lip sync hook
+  const { currentViseme, isAnimating, startLipSync } = useLipSync();
+
   // Voice conversation hook
   const {
     isListening,
@@ -62,11 +65,9 @@ export function ConversationalAvatar({
     voiceSettings: voiceId ? { voiceId } : undefined,
     onMessage,
     onError,
+    onAudioStart: startLipSync, // Connect TTS audio to lip sync animation
     autoRestart: true, // Auto-restart listening after response
   });
-
-  // Lip sync hook
-  const { currentViseme, isAnimating } = useLipSync();
 
   // Auto-start conversation if requested
   useEffect(() => {
