@@ -66,6 +66,7 @@ export function useVoiceConversation(
   const lastInterimTextRef = useRef<string>("");
   const isRestartingRef = useRef(false); // NEW: Prevent double restart
   const isProcessingMessageRef = useRef(false); // NEW: Prevent double message processing
+  const handleUserMessageRef = useRef<((text: string) => Promise<void>) | null>(null); // NEW: Ref to latest handler
 
   // Computed state
   const currentState: AvatarState = isSpeaking
@@ -181,7 +182,8 @@ export function useVoiceConversation(
           finalizeTimeoutRef.current = null;
         }
         lastInterimTextRef.current = "";
-        handleUserMessage(transcriptText);
+        // Call through ref to avoid stale closure
+        handleUserMessageRef.current?.(transcriptText);
       } else {
         // Auto-finalize after 1.5s of silence
         if (finalizeTimeoutRef.current) {
@@ -193,7 +195,8 @@ export function useVoiceConversation(
         finalizeTimeoutRef.current = setTimeout(() => {
           if (lastInterimTextRef.current.trim().length > 0) {
             console.log("Auto-finalizing:", lastInterimTextRef.current);
-            handleUserMessage(lastInterimTextRef.current);
+            // Call through ref to avoid stale closure
+            handleUserMessageRef.current?.(lastInterimTextRef.current);
             lastInterimTextRef.current = "";
           }
         }, 1500);
@@ -227,7 +230,7 @@ export function useVoiceConversation(
     };
 
     return recognition;
-  }, [onError, scheduleRestart]); // FIXED: Removed isSpeaking, isProcessing
+  }, [onError, scheduleRestart]); // Uses handleUserMessageRef.current - no need for dep
 
   /**
    * Handle user message
@@ -287,6 +290,11 @@ export function useVoiceConversation(
     },
     [onMessage, onError, clearRestartTimeout]
   );
+
+  // Update ref whenever handleUserMessage changes
+  useEffect(() => {
+    handleUserMessageRef.current = handleUserMessage;
+  }, [handleUserMessage]);
 
   /**
    * Send message to Dify
@@ -477,9 +485,17 @@ export function useVoiceConversation(
     isActiveRef.current = true;
     setError(null);
 
-    if (!recognitionRef.current) {
-      recognitionRef.current = initializeSpeechRecognition();
+    // CRITICAL FIX: Always recreate recognition to get fresh event handlers
+    // This prevents stale closure issues
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        // Ignore
+      }
     }
+
+    recognitionRef.current = initializeSpeechRecognition();
 
     if (recognitionRef.current) {
       safeStartRecognition();
