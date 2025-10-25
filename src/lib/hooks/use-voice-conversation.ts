@@ -64,6 +64,8 @@ export function useVoiceConversation(
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isActiveRef = useRef(false);
+  const finalizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastInterimTextRef = useRef<string>("");
 
   // Computed state
   const currentState: AvatarState = isSpeaking
@@ -113,7 +115,28 @@ export function useVoiceConversation(
       // If final result, process the message
       if (transcriptResult.isFinal) {
         console.log("Final transcript:", transcriptText);
+        // Clear any pending auto-finalize
+        if (finalizeTimeoutRef.current) {
+          clearTimeout(finalizeTimeoutRef.current);
+          finalizeTimeoutRef.current = null;
+        }
+        lastInterimTextRef.current = "";
         handleUserMessage(transcriptText);
+      } else {
+        // Auto-finalize after 1.5s of no new speech (interim results)
+        if (finalizeTimeoutRef.current) {
+          clearTimeout(finalizeTimeoutRef.current);
+        }
+
+        lastInterimTextRef.current = transcriptText;
+
+        finalizeTimeoutRef.current = setTimeout(() => {
+          if (lastInterimTextRef.current.trim().length > 0) {
+            console.log("Auto-finalizing transcript:", lastInterimTextRef.current);
+            handleUserMessage(lastInterimTextRef.current);
+            lastInterimTextRef.current = "";
+          }
+        }, 1500); // Auto-finalize after 1.5s of silence
       }
     };
 
@@ -144,10 +167,10 @@ export function useVoiceConversation(
       console.log("Speech recognition ended");
       setIsListening(false);
 
-      // Auto-restart if still active
-      if (isActiveRef.current && autoRestart && !isProcessing) {
+      // Auto-restart ONLY if not processing AND not speaking
+      if (isActiveRef.current && autoRestart && !isProcessing && !isSpeaking) {
         setTimeout(() => {
-          if (recognitionRef.current && isActiveRef.current) {
+          if (recognitionRef.current && isActiveRef.current && !isSpeaking) {
             recognitionRef.current.start();
           }
         }, 500);
@@ -155,7 +178,7 @@ export function useVoiceConversation(
     };
 
     return recognition;
-  }, [autoRestart, isProcessing, onError]);
+  }, [autoRestart, isProcessing, isSpeaking, onError]);
 
   /**
    * Handle user message
@@ -311,6 +334,15 @@ export function useVoiceConversation(
   const generateSpeech = useCallback(
     async (text: string) => {
       try {
+        // Stop mic before speaking to prevent echo
+        if (recognitionRef.current) {
+          try {
+            recognitionRef.current.stop();
+          } catch (e) {
+            // Ignore errors when stopping
+          }
+        }
+        setIsListening(false);
         setIsSpeaking(true);
 
         const response = await fetch("/api/avatar/tts", {
@@ -497,6 +529,9 @@ export function useVoiceConversation(
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
+      }
+      if (finalizeTimeoutRef.current) {
+        clearTimeout(finalizeTimeoutRef.current);
       }
       isActiveRef.current = false;
     };
