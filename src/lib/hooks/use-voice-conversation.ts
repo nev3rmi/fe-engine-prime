@@ -473,13 +473,39 @@ export function useVoiceConversation(
   /**
    * Start conversation
    */
-  const startConversation = useCallback(() => {
+  const startConversation = useCallback(async () => {
     if (!isWebSpeechSupported) {
       const errorMsg =
         "Web Speech API is not supported in this browser. Please use Chrome, Edge, or Safari.";
       setError(errorMsg);
       onError?.(new Error(errorMsg));
       return;
+    }
+
+    // CRITICAL: Check microphone permission BEFORE trying to start
+    try {
+      if (navigator.permissions && navigator.permissions.query) {
+        const permissionStatus = await navigator.permissions.query({
+          name: "microphone" as PermissionName,
+        });
+
+        console.log("Microphone permission status:", permissionStatus.state);
+
+        if (permissionStatus.state === "denied") {
+          const errorMsg =
+            "Microphone access was denied. Please click the lock icon in your browser's address bar and allow microphone access, then reload the page.";
+          setError(errorMsg);
+          onError?.(new Error(errorMsg));
+          return;
+        }
+
+        // If "granted" or "prompt", proceed
+        // "prompt" means browser will ask when we call start()
+      }
+    } catch (err) {
+      // Permissions API not supported or query failed
+      // Continue anyway - the browser will show permission dialog
+      console.warn("Could not check microphone permission:", err);
     }
 
     isActiveRef.current = true;
