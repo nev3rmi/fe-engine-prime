@@ -27,7 +27,7 @@ export interface UseVoiceConversationOptions {
   voiceSettings?: VoiceSettings;
   onMessage?: (message: Message) => void;
   onError?: (error: Error) => void;
-  onAudioStart?: (audioUrl: string) => void; // Called when TTS audio starts playing
+  onAudioStart?: (duration: number) => void; // Called when TTS audio starts playing (duration in ms)
   autoRestart?: boolean; // Auto-restart listening after response
 }
 
@@ -90,7 +90,7 @@ export function useVoiceConversation(
 
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = "en-US";
+    recognition.lang = "vi-VN"; // Vietnamese language support
 
     recognition.onstart = () => {
       console.log("Speech recognition started");
@@ -338,15 +338,22 @@ export function useVoiceConversation(
         const audio = new Audio(audioUrl);
         audioRef.current = audio;
 
+        // Wait for metadata to get duration
+        audio.addEventListener("loadedmetadata", () => {
+          const durationMs = audio.duration * 1000; // Convert to milliseconds
+          // Notify that audio has started (for lip sync)
+          onAudioStart?.(durationMs);
+        });
+
         audio.onended = () => {
           setIsSpeaking(false);
           URL.revokeObjectURL(audioUrl);
 
-          // Restart listening if auto-restart is enabled
+          // Restart listening if auto-restart is enabled (with longer delay to avoid echo)
           if (autoRestart && isActiveRef.current && recognitionRef.current) {
             setTimeout(() => {
               recognitionRef.current?.start();
-            }, 500);
+            }, 1500); // Increased from 500ms to 1.5s to prevent capturing TTS audio
           }
         };
 
@@ -357,9 +364,6 @@ export function useVoiceConversation(
         };
 
         await audio.play();
-
-        // Notify that audio has started (for lip sync)
-        onAudioStart?.(audioUrl);
 
         return audioUrl;
       } catch (err) {

@@ -248,7 +248,7 @@ export interface LipSyncState {
  * Lip sync hook actions
  */
 export interface LipSyncActions {
-  startLipSync: (audioUrl: string, visemes?: VisemeTiming[]) => void;
+  startLipSync: (duration?: number, visemes?: VisemeTiming[]) => void;
   stopLipSync: () => void;
   pauseLipSync: () => void;
   resumeLipSync: () => void;

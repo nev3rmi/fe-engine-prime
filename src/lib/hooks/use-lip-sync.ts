@@ -3,11 +3,12 @@
  * Manages lip sync animation based on audio playback
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import type { Viseme, LipSyncState, LipSyncActions, VisemeTiming } from '@/types/avatar';
+import { useState, useEffect, useRef, useCallback } from "react";
+
+import type { Viseme, LipSyncState, LipSyncActions, VisemeTiming } from "@/types/avatar";
 
 export function useLipSync(): LipSyncState & LipSyncActions {
-  const [currentViseme, setCurrentViseme] = useState<Viseme>('neutral');
+  const [currentViseme, setCurrentViseme] = useState<Viseme>("neutral");
   const [isAnimating, setIsAnimating] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -26,7 +27,7 @@ export function useLipSync(): LipSyncState & LipSyncActions {
     // In production, you'd want to analyze the actual audio waveform
     const duration = audio.duration * 1000; // Convert to milliseconds
     const visemes: VisemeTiming[] = [];
-    const visemeTypes: Viseme[] = ['A', 'E', 'I', 'O', 'U', 'closed'];
+    const visemeTypes: Viseme[] = ["A", "E", "I", "O", "U", "closed"];
 
     // Generate viseme pattern
     const visemeCount = Math.floor(duration / 150); // One viseme every 150ms
@@ -34,7 +35,7 @@ export function useLipSync(): LipSyncState & LipSyncActions {
     for (let i = 0; i < visemeCount; i++) {
       const time = i * 150;
       const visemeIndex = Math.floor(Math.random() * visemeTypes.length);
-      const viseme = visemeTypes[visemeIndex] || 'neutral';
+      const viseme = visemeTypes[visemeIndex] || "neutral";
 
       visemes.push({
         viseme,
@@ -45,7 +46,7 @@ export function useLipSync(): LipSyncState & LipSyncActions {
 
     // Add a closing neutral viseme at the end
     visemes.push({
-      viseme: 'neutral',
+      viseme: "neutral",
       time: duration - 100,
       duration: 100,
     });
@@ -54,28 +55,31 @@ export function useLipSync(): LipSyncState & LipSyncActions {
   }, []);
 
   /**
-   * Update viseme based on current audio time
+   * Update viseme based on elapsed time
    */
   const updateViseme = useCallback(() => {
-    if (!audioRef.current || !isAnimating || isPausedRef.current) return;
+    if (!isAnimating || isPausedRef.current) {
+      return;
+    }
 
-    const currentTime = (audioRef.current.currentTime * 1000); // Convert to milliseconds
-    const elapsed = currentTime;
+    const elapsed = Date.now() - startTimeRef.current;
 
     // Find the current viseme
     const currentVisemeTiming = visemesRef.current.find(
-      (v) => elapsed >= v.time && elapsed < v.time + v.duration
+      v => elapsed >= v.time && elapsed < v.time + v.duration
     );
 
     if (currentVisemeTiming) {
       setCurrentViseme(currentVisemeTiming.viseme);
     } else {
-      setCurrentViseme('neutral');
+      setCurrentViseme("neutral");
     }
 
-    // Update progress
-    if (audioRef.current.duration > 0) {
-      setProgress(audioRef.current.currentTime / audioRef.current.duration);
+    // Update progress (estimate based on visemes)
+    if (visemesRef.current.length > 0) {
+      const lastViseme = visemesRef.current[visemesRef.current.length - 1];
+      const totalDuration = lastViseme ? lastViseme.time + lastViseme.duration : 1;
+      setProgress(Math.min(elapsed / totalDuration, 1));
     }
 
     // Continue animation
@@ -83,52 +87,65 @@ export function useLipSync(): LipSyncState & LipSyncActions {
   }, [isAnimating]);
 
   /**
-   * Start lip sync with audio
+   * Start lip sync animation (audio is played elsewhere)
+   * @param duration - Animation duration in milliseconds
+   * @param customVisemes - Optional custom viseme timings
    */
   const startLipSync = useCallback(
-    (audioUrl: string, customVisemes?: VisemeTiming[]) => {
+    (duration = 5000, customVisemes?: VisemeTiming[]) => {
       // Stop any existing animation
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
 
-      // Create audio element
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
+      // Use custom visemes if provided, otherwise generate simple pattern
+      if (customVisemes && customVisemes.length > 0) {
+        visemesRef.current = customVisemes;
+      } else {
+        // Generate viseme pattern based on duration
+        const visemes: VisemeTiming[] = [];
+        const visemeTypes: Viseme[] = ["A", "E", "I", "O", "U", "closed"];
+        const visemeCount = Math.floor(duration / 150); // One viseme every 150ms
 
-      audio.addEventListener('loadedmetadata', () => {
-        // Use custom visemes if provided, otherwise analyze audio
-        if (customVisemes && customVisemes.length > 0) {
-          visemesRef.current = customVisemes;
-        } else {
-          visemesRef.current = analyzeAudio(audio);
+        for (let i = 0; i < visemeCount; i++) {
+          const time = i * 150;
+          const visemeIndex = Math.floor(Math.random() * visemeTypes.length);
+          const viseme = visemeTypes[visemeIndex] || "neutral";
+
+          visemes.push({
+            viseme,
+            time,
+            duration: 150,
+          });
         }
 
-        // Start playback
-        audio.play();
-        setIsAnimating(true);
-        startTimeRef.current = Date.now();
-        isPausedRef.current = false;
-        animationFrameRef.current = requestAnimationFrame(updateViseme);
-      });
+        // Add a closing neutral viseme at the end
+        visemes.push({
+          viseme: "neutral",
+          time: duration - 100,
+          duration: 100,
+        });
 
-      audio.addEventListener('ended', () => {
+        visemesRef.current = visemes;
+      }
+
+      // Start animation (without playing audio)
+      setIsAnimating(true);
+      startTimeRef.current = Date.now();
+      isPausedRef.current = false;
+      animationFrameRef.current = requestAnimationFrame(updateViseme);
+
+      // Auto-stop animation after duration
+      setTimeout(() => {
         setIsAnimating(false);
-        setCurrentViseme('neutral');
+        setCurrentViseme("neutral");
         setProgress(0);
         if (animationFrameRef.current) {
           cancelAnimationFrame(animationFrameRef.current);
         }
-      });
-
-      audio.addEventListener('error', (e) => {
-        console.error('Audio playback error:', e);
-        setIsAnimating(false);
-        setCurrentViseme('neutral');
-        setProgress(0);
-      });
+      }, duration);
     },
-    [analyzeAudio, updateViseme]
+    [updateViseme]
   );
 
   /**
@@ -146,7 +163,7 @@ export function useLipSync(): LipSyncState & LipSyncActions {
     }
 
     setIsAnimating(false);
-    setCurrentViseme('neutral');
+    setCurrentViseme("neutral");
     setProgress(0);
     isPausedRef.current = false;
   }, []);
