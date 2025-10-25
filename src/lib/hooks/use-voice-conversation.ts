@@ -338,22 +338,15 @@ export function useVoiceConversation(
         const audio = new Audio(audioUrl);
         audioRef.current = audio;
 
-        // Wait for metadata to get duration
-        audio.addEventListener("loadedmetadata", () => {
-          const durationMs = audio.duration * 1000; // Convert to milliseconds
-          // Notify that audio has started (for lip sync)
-          onAudioStart?.(durationMs);
-        });
-
         audio.onended = () => {
           setIsSpeaking(false);
           URL.revokeObjectURL(audioUrl);
 
-          // Restart listening if auto-restart is enabled (with longer delay to avoid echo)
+          // Restart listening if auto-restart is enabled (balanced delay to avoid echo)
           if (autoRestart && isActiveRef.current && recognitionRef.current) {
             setTimeout(() => {
               recognitionRef.current?.start();
-            }, 1500); // Increased from 500ms to 1.5s to prevent capturing TTS audio
+            }, 800); // Balanced delay: prevents echo but not too long
           }
         };
 
@@ -363,7 +356,18 @@ export function useVoiceConversation(
           URL.revokeObjectURL(audioUrl);
         };
 
+        // Wait for metadata before playing
+        await new Promise<void>((resolve, reject) => {
+          audio.onloadedmetadata = () => resolve();
+          audio.onerror = () => reject(new Error("Failed to load audio metadata"));
+        });
+
+        // Play audio and start lip sync animation
         await audio.play();
+
+        // Trigger lip sync with actual audio duration
+        const durationMs = audio.duration * 1000; // Convert to milliseconds
+        onAudioStart?.(durationMs);
 
         return audioUrl;
       } catch (err) {
