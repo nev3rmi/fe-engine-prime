@@ -17,6 +17,7 @@ export function useLipSync(): LipSyncState & LipSyncActions {
   const visemesRef = useRef<VisemeTiming[]>([]);
   const startTimeRef = useRef<number>(0);
   const isPausedRef = useRef(false);
+  const isAnimatingRef = useRef(false);
 
   /**
    * Simple audio analysis for lip sync
@@ -58,7 +59,7 @@ export function useLipSync(): LipSyncState & LipSyncActions {
    * Update viseme based on elapsed time
    */
   const updateViseme = useCallback(() => {
-    if (!isAnimating || isPausedRef.current) {
+    if (!isAnimatingRef.current || isPausedRef.current) {
       return;
     }
 
@@ -70,6 +71,9 @@ export function useLipSync(): LipSyncState & LipSyncActions {
     );
 
     if (currentVisemeTiming) {
+      if (currentVisemeTiming.viseme !== currentViseme) {
+        console.log("👄 Viseme changed to:", currentVisemeTiming.viseme, "at", elapsed, "ms");
+      }
       setCurrentViseme(currentVisemeTiming.viseme);
     } else {
       setCurrentViseme("neutral");
@@ -84,7 +88,7 @@ export function useLipSync(): LipSyncState & LipSyncActions {
 
     // Continue animation
     animationFrameRef.current = requestAnimationFrame(updateViseme);
-  }, [isAnimating]);
+  }, []); // No dependencies - uses refs only
 
   /**
    * Start lip sync animation (audio is played elsewhere)
@@ -93,6 +97,8 @@ export function useLipSync(): LipSyncState & LipSyncActions {
    */
   const startLipSync = useCallback(
     (duration = 5000, customVisemes?: VisemeTiming[]) => {
+      console.log("🎭 startLipSync called with duration:", duration, "ms");
+
       // Stop any existing animation
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -101,11 +107,13 @@ export function useLipSync(): LipSyncState & LipSyncActions {
       // Use custom visemes if provided, otherwise generate simple pattern
       if (customVisemes && customVisemes.length > 0) {
         visemesRef.current = customVisemes;
+        console.log("Using custom visemes:", customVisemes.length);
       } else {
         // Generate viseme pattern based on duration
         const visemes: VisemeTiming[] = [];
         const visemeTypes: Viseme[] = ["A", "E", "I", "O", "U", "closed"];
         const visemeCount = Math.floor(duration / 150); // One viseme every 150ms
+        console.log("Generating", visemeCount, "visemes for", duration, "ms");
 
         for (let i = 0; i < visemeCount; i++) {
           const time = i * 150;
@@ -131,13 +139,17 @@ export function useLipSync(): LipSyncState & LipSyncActions {
 
       // Start animation (without playing audio)
       setIsAnimating(true);
+      isAnimatingRef.current = true;
       startTimeRef.current = Date.now();
       isPausedRef.current = false;
+      console.log("🎬 Starting animation loop, will run for", duration, "ms");
       animationFrameRef.current = requestAnimationFrame(updateViseme);
 
       // Auto-stop animation after duration
       setTimeout(() => {
+        console.log("⏹️ Stopping lip sync animation");
         setIsAnimating(false);
+        isAnimatingRef.current = false;
         setCurrentViseme("neutral");
         setProgress(0);
         if (animationFrameRef.current) {
@@ -163,6 +175,7 @@ export function useLipSync(): LipSyncState & LipSyncActions {
     }
 
     setIsAnimating(false);
+    isAnimatingRef.current = false;
     setCurrentViseme("neutral");
     setProgress(0);
     isPausedRef.current = false;
