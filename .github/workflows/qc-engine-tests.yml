@@ -30,12 +30,18 @@ jobs:
           path: fe-engine-prime
           fetch-depth: 0
 
+      - name: Setup SSH for private repo
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.QC_ENGINE_DEPLOY_KEY }}
+
       - name: Checkout qc-engine-prime
         uses: actions/checkout@v4
         with:
           repository: nev3rmi/qc-engine-prime
           path: qc-engine-prime
           fetch-depth: 0
+          ssh-key: ${{ secrets.QC_ENGINE_DEPLOY_KEY }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
