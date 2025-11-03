@@ -68,6 +68,10 @@ jobs:
         working-directory: qc-engine-prime
         run: pip install -r requirements.txt
 
+      - name: Initialize Robot Framework Browser
+        working-directory: qc-engine-prime
+        run: rfbrowser init
+
       - name: Start fe-engine-prime dev server
         working-directory: fe-engine-prime
         run: |
