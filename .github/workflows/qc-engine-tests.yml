@@ -24,10 +24,17 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - name: Checkout code with submodules
+      - name: Checkout fe-engine-prime
         uses: actions/checkout@v4
         with:
-          submodules: "recursive"
+          path: fe-engine-prime
+          fetch-depth: 0
+
+      - name: Checkout qc-engine-prime
+        uses: actions/checkout@v4
+        with:
+          repository: nev3rmi/qc-engine-prime
+          path: qc-engine-prime
           fetch-depth: 0
 
       - name: Setup pnpm
@@ -40,6 +47,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
+          cache-dependency-path: fe-engine-prime/pnpm-lock.yaml
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -47,14 +55,15 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
+        working-directory: fe-engine-prime
         run: pnpm install --frozen-lockfile
 
       - name: Install Robot Framework
-        run: |
-          cd qc-engine-prime
-          pip install -r requirements.txt
+        working-directory: qc-engine-prime
+        run: pip install -r requirements.txt
 
       - name: Start fe-engine-prime dev server
+        working-directory: fe-engine-prime
         run: |
           pnpm dev &
           echo "Waiting for dev server to start..."
@@ -64,15 +73,14 @@ jobs:
 
       - name: Run QC Engine tests
         id: robot_tests
-        run: |
-          cd qc-engine-prime
-          robot --outputdir results tests/
+        working-directory: qc-engine-prime
+        run: robot --outputdir results tests/
         continue-on-error: true
 
       - name: Parse test results
         id: parse_results
+        working-directory: qc-engine-prime/results
         run: |
-          cd qc-engine-prime/results
           if [ -f output.xml ]; then
             PASSED=$(grep -o 'pass="[0-9]*"' output.xml | head -1 | grep -o '[0-9]*' || echo "0")
             FAILED=$(grep -o 'fail="[0-9]*"' output.xml | head -1 | grep -o '[0-9]*' || echo "0")
