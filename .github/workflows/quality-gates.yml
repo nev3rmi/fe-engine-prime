@@ -323,6 +323,26 @@ jobs:
           fi
           kill $SERVER_PID
 
+      - name: Health check validation
+        run: |
+          timeout 30s pnpm start &
+          SERVER_PID=$!
+          sleep 10
+
+          echo "Testing health check endpoint..."
+          HEALTH_RESPONSE=$(curl -f http://localhost:3000/api/health)
+
+          if [ $? -eq 0 ]; then
+            echo "✅ Health check endpoint responding"
+            echo "Response: $HEALTH_RESPONSE"
+          else
+            echo "❌ Health check endpoint failed"
+            kill $SERVER_PID
+            exit 1
+          fi
+
+          kill $SERVER_PID
+
   # Quality Gate Summary
   quality-gate:
     name: Quality Gate Summary

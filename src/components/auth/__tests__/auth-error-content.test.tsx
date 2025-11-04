@@ -3,8 +3,11 @@ import { describe, it, expect, vi } from "vitest";
 import { AuthErrorContent } from "../auth-error-content";
 
 // Mock next/navigation
+const mockGet = vi.fn();
 vi.mock("next/navigation", () => ({
-  useSearchParams: vi.fn(),
+  useSearchParams: () => ({
+    get: mockGet,
+  }),
 }));
 
 // Mock next/link
@@ -17,11 +20,12 @@ vi.mock("next/link", () => ({
 }));
 
 describe("AuthErrorContent", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("displays default error message when no error parameter", () => {
-    const { useSearchParams } = require("next/navigation");
-    useSearchParams.mockReturnValue({
-      get: vi.fn().mockReturnValue(null),
-    });
+    mockGet.mockReturnValue(null);
 
     render(<AuthErrorContent />);
 
@@ -30,10 +34,7 @@ describe("AuthErrorContent", () => {
   });
 
   it("displays specific error message for CredentialsSignin", () => {
-    const { useSearchParams } = require("next/navigation");
-    useSearchParams.mockReturnValue({
-      get: vi.fn().mockReturnValue("CredentialsSignin"),
-    });
+    mockGet.mockReturnValue("CredentialsSignin");
 
     render(<AuthErrorContent />);
 
@@ -41,10 +42,7 @@ describe("AuthErrorContent", () => {
   });
 
   it("displays specific error message for OAuthAccountNotLinked with additional info", () => {
-    const { useSearchParams } = require("next/navigation");
-    useSearchParams.mockReturnValue({
-      get: vi.fn().mockReturnValue("OAuthAccountNotLinked"),
-    });
+    mockGet.mockReturnValue("OAuthAccountNotLinked");
 
     render(<AuthErrorContent />);
 
@@ -53,10 +51,7 @@ describe("AuthErrorContent", () => {
   });
 
   it("renders Try Again and Go Home buttons", () => {
-    const { useSearchParams } = require("next/navigation");
-    useSearchParams.mockReturnValue({
-      get: vi.fn().mockReturnValue(null),
-    });
+    mockGet.mockReturnValue(null);
 
     render(<AuthErrorContent />);
 

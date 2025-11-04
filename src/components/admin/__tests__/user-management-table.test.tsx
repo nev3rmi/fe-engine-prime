@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { UserManagementTable } from "../user-management-table";
 import { UserRole } from "@/types/auth";
 import type { User } from "@/types/auth";
@@ -111,38 +112,45 @@ describe("UserManagementTable", () => {
   });
 
   it("opens role change dialog when clicking change role action", async () => {
+    const user = userEvent.setup();
     render(<UserManagementTable users={mockUsers} total={3} />);
 
     const actionButtons = screen.getAllByRole("button", { name: /open menu/i });
-    fireEvent.click(actionButtons[0]);
+    await user.click(actionButtons[0]);
 
-    const changeRoleButton = screen.getByRole("menuitem", { name: /change role/i });
-    fireEvent.click(changeRoleButton);
+    // Wait for menu to open and find the menu item
+    const changeRoleButton = await screen.findByRole("menuitem", { name: /change role/i });
+    await user.click(changeRoleButton);
 
     expect(screen.getByTestId("role-dialog")).toBeInTheDocument();
     expect(screen.getByText("Change role for admin@example.com")).toBeInTheDocument();
   });
 
   it("opens status dialog when clicking deactivate action for active user", async () => {
+    const user = userEvent.setup();
     render(<UserManagementTable users={mockUsers} total={3} />);
 
     const actionButtons = screen.getAllByRole("button", { name: /open menu/i });
-    fireEvent.click(actionButtons[0]);
+    await user.click(actionButtons[0]);
 
-    const deactivateButton = screen.getByRole("menuitem", { name: /deactivate/i });
-    fireEvent.click(deactivateButton);
+    // Wait for menu to open and find the menu item
+    const deactivateButton = await screen.findByRole("menuitem", { name: /deactivate/i });
+    await user.click(deactivateButton);
 
     expect(screen.getByTestId("status-dialog")).toBeInTheDocument();
     expect(screen.getByText("Change status for admin@example.com")).toBeInTheDocument();
   });
 
   it("shows activate action for inactive users", async () => {
+    const user = userEvent.setup();
     render(<UserManagementTable users={mockUsers} total={3} />);
 
     const actionButtons = screen.getAllByRole("button", { name: /open menu/i });
-    fireEvent.click(actionButtons[2]); // Inactive user
+    await user.click(actionButtons[2]); // Inactive user
 
-    expect(screen.getByRole("menuitem", { name: /activate/i })).toBeInTheDocument();
+    // Wait for menu to open and find the menu item
+    const activateButton = await screen.findByRole("menuitem", { name: /activate/i });
+    expect(activateButton).toBeInTheDocument();
   });
 
   it("displays all table headers correctly", () => {
