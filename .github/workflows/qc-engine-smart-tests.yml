@@ -214,12 +214,11 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Initialize Playwright
+      - name: Initialize Robot Browser
         working-directory: qc-engine-prime
         run: |
-          echo "🎭 Installing Playwright Chromium..."
-          python -m playwright install chromium
-          python -m playwright install-deps chromium
+          echo "🎭 Installing Robot Framework Browser..."
+          rfbrowser init
 
       - name: Start fe-engine-prime dev server
         working-directory: fe-engine-prime
