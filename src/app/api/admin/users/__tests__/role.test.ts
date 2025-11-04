@@ -4,12 +4,12 @@ import { PATCH } from "../[id]/role/route";
 import { UserRole } from "@/types/auth";
 
 // Mock dependencies
-vi.mock("next-auth", () => ({
-  getServerSession: vi.fn(),
+vi.mock("@/lib/auth", () => ({
+  auth: vi.fn(),
 }));
 
-vi.mock("@/lib/auth/config", () => ({
-  authOptions: {},
+vi.mock("@/lib/audit/audit-service", () => ({
+  logRoleChange: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/permissions", () => ({
@@ -19,11 +19,12 @@ vi.mock("@/lib/auth/permissions", () => ({
 
 vi.mock("@/lib/auth/user-service", () => ({
   updateUserRole: vi.fn(),
+  getUserById: vi.fn(),
 }));
 
-import { getServerSession } from "next-auth";
+import { auth } from "@/lib/auth";
 import { hasPermission, canManageRole } from "@/lib/auth/permissions";
-import { updateUserRole } from "@/lib/auth/user-service";
+import { updateUserRole, getUserById } from "@/lib/auth/user-service";
 
 describe("PATCH /api/admin/users/[id]/role", () => {
   beforeEach(() => {
@@ -31,14 +32,14 @@ describe("PATCH /api/admin/users/[id]/role", () => {
   });
 
   it("returns 401 when user is not authenticated", async () => {
-    vi.mocked(getServerSession).mockResolvedValue(null);
+    vi.mocked(auth).mockResolvedValue(null);
 
     const request = new NextRequest("http://localhost/api/admin/users/1/role", {
       method: "PATCH",
       body: JSON.stringify({ role: UserRole.EDITOR }),
     });
 
-    const response = await PATCH(request, { params: { id: "1" } });
+    const response = await PATCH(request, { params: Promise.resolve({ id: "1" }) });
     const data = await response.json();
 
     expect(response.status).toBe(401);
@@ -46,7 +47,7 @@ describe("PATCH /api/admin/users/[id]/role", () => {
   });
 
   it("returns 403 when user lacks MANAGE_USER_ROLES permission", async () => {
-    vi.mocked(getServerSession).mockResolvedValue({
+    vi.mocked(auth).mockResolvedValue({
       user: { id: "admin", role: UserRole.EDITOR },
     } as any);
     vi.mocked(hasPermission).mockResolvedValue(false);
@@ -56,7 +57,7 @@ describe("PATCH /api/admin/users/[id]/role", () => {
       body: JSON.stringify({ role: UserRole.EDITOR }),
     });
 
-    const response = await PATCH(request, { params: { id: "1" } });
+    const response = await PATCH(request, { params: Promise.resolve({ id: "1" }) });
     const data = await response.json();
 
     expect(response.status).toBe(403);
@@ -64,7 +65,7 @@ describe("PATCH /api/admin/users/[id]/role", () => {
   });
 
   it("returns 400 for invalid role", async () => {
-    vi.mocked(getServerSession).mockResolvedValue({
+    vi.mocked(auth).mockResolvedValue({
       user: { id: "admin", role: UserRole.ADMIN },
     } as any);
     vi.mocked(hasPermission).mockResolvedValue(true);
@@ -74,7 +75,7 @@ describe("PATCH /api/admin/users/[id]/role", () => {
       body: JSON.stringify({ role: "INVALID_ROLE" }),
     });
 
-    const response = await PATCH(request, { params: { id: "1" } });
+    const response = await PATCH(request, { params: Promise.resolve({ id: "1" }) });
     const data = await response.json();
 
     expect(response.status).toBe(400);
@@ -82,7 +83,7 @@ describe("PATCH /api/admin/users/[id]/role", () => {
   });
 
   it("returns 403 when user cannot manage target role", async () => {
-    vi.mocked(getServerSession).mockResolvedValue({
+    vi.mocked(auth).mockResolvedValue({
       user: { id: "editor", role: UserRole.EDITOR },
     } as any);
     vi.mocked(hasPermission).mockResolvedValue(true);
@@ -93,7 +94,7 @@ describe("PATCH /api/admin/users/[id]/role", () => {
       body: JSON.stringify({ role: UserRole.ADMIN }),
     });
 
-    const response = await PATCH(request, { params: { id: "1" } });
+    const response = await PATCH(request, { params: Promise.resolve({ id: "1" }) });
     const data = await response.json();
 
     expect(response.status).toBe(403);
@@ -101,11 +102,12 @@ describe("PATCH /api/admin/users/[id]/role", () => {
   });
 
   it("returns 404 when user is not found", async () => {
-    vi.mocked(getServerSession).mockResolvedValue({
+    vi.mocked(auth).mockResolvedValue({
       user: { id: "admin", role: UserRole.ADMIN },
     } as any);
     vi.mocked(hasPermission).mockResolvedValue(true);
     vi.mocked(canManageRole).mockReturnValue(true);
+    vi.mocked(getUserById).mockResolvedValue(null);
     vi.mocked(updateUserRole).mockResolvedValue(null);
 
     const request = new NextRequest("http://localhost/api/admin/users/999/role", {
@@ -113,7 +115,7 @@ describe("PATCH /api/admin/users/[id]/role", () => {
       body: JSON.stringify({ role: UserRole.EDITOR }),
     });
 
-    const response = await PATCH(request, { params: { id: "999" } });
+    const response = await PATCH(request, { params: Promise.resolve({ id: "999" }) });
     const data = await response.json();
 
     expect(response.status).toBe(404);
@@ -121,18 +123,24 @@ describe("PATCH /api/admin/users/[id]/role", () => {
   });
 
   it("successfully updates user role when authorized", async () => {
-    const updatedUser = {
+    const targetUser = {
       id: "1",
       email: "user@example.com",
       name: "Test User",
+      role: UserRole.USER,
+    };
+
+    const updatedUser = {
+      ...targetUser,
       role: UserRole.EDITOR,
     };
 
-    vi.mocked(getServerSession).mockResolvedValue({
+    vi.mocked(auth).mockResolvedValue({
       user: { id: "admin", role: UserRole.ADMIN },
     } as any);
     vi.mocked(hasPermission).mockResolvedValue(true);
     vi.mocked(canManageRole).mockReturnValue(true);
+    vi.mocked(getUserById).mockResolvedValue(targetUser as any);
     vi.mocked(updateUserRole).mockResolvedValue(updatedUser as any);
 
     const request = new NextRequest("http://localhost/api/admin/users/1/role", {
@@ -140,7 +148,7 @@ describe("PATCH /api/admin/users/[id]/role", () => {
       body: JSON.stringify({ role: UserRole.EDITOR }),
     });
 
-    const response = await PATCH(request, { params: { id: "1" } });
+    const response = await PATCH(request, { params: Promise.resolve({ id: "1" }) });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -149,11 +157,12 @@ describe("PATCH /api/admin/users/[id]/role", () => {
   });
 
   it("calls updateUserRole with correct parameters", async () => {
-    vi.mocked(getServerSession).mockResolvedValue({
+    vi.mocked(auth).mockResolvedValue({
       user: { id: "admin", role: UserRole.ADMIN },
     } as any);
     vi.mocked(hasPermission).mockResolvedValue(true);
     vi.mocked(canManageRole).mockReturnValue(true);
+    vi.mocked(getUserById).mockResolvedValue({ id: "1", role: UserRole.EDITOR } as any);
     vi.mocked(updateUserRole).mockResolvedValue({
       id: "1",
       role: UserRole.USER,
@@ -164,7 +173,7 @@ describe("PATCH /api/admin/users/[id]/role", () => {
       body: JSON.stringify({ role: UserRole.USER }),
     });
 
-    await PATCH(request, { params: { id: "1" } });
+    await PATCH(request, { params: Promise.resolve({ id: "1" }) });
 
     expect(updateUserRole).toHaveBeenCalledWith("1", UserRole.USER);
   });
