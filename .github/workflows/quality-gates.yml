@@ -111,10 +111,23 @@ jobs:
           fi
 
   # End-to-End Tests
+  # Cost optimization: Only run E2E tests on:
+  # 1. Epic commits (commit message contains [epic] or epic:)
+  # 2. Merges to main branch (production deployment)
+  # 3. Manual workflow dispatch
   e2e-tests:
     name: E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Skip E2E tests unless:
+    # - Commit message has [epic] tag OR
+    # - Branch is main (production) OR
+    # - Manually triggered
+    if: |
+      contains(github.event.head_commit.message, '[epic]') ||
+      contains(github.event.head_commit.message, 'epic:') ||
+      github.ref == 'refs/heads/main' ||
+      github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout code
@@ -407,6 +420,8 @@ jobs:
             # Provide status summary
             if [[ $E2E_TESTS == 'success' ]]; then
               echo "✅ E2E Tests: PASSED" >> $GITHUB_STEP_SUMMARY
+            elif [[ $E2E_TESTS == 'skipped' ]]; then
+              echo "⏭️  E2E Tests: SKIPPED (cost optimization - runs on epic commits, main branch, or manual trigger)" >> $GITHUB_STEP_SUMMARY
             else
               echo "⚠️  E2E Tests: $E2E_TESTS (non-blocking)" >> $GITHUB_STEP_SUMMARY
             fi
