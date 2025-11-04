@@ -1,0 +1,400 @@
+name: Production Deployment with Auto-Rollback
+
+# This workflow deploys to production and validates with health checks
+# Automatically rolls back on health check failure
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      skip_health_check:
+        description: 'Skip post-deployment health check'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "9"
+  HEALTH_CHECK_ATTEMPTS: 3
+  HEALTH_CHECK_INTERVAL: 30
+  STABILIZATION_WAIT: 60
+
+jobs:
+  # Quality gates must pass before deployment
+  quality-gates:
+    name: Quality Gates
+    uses: ./.github/workflows/quality-gates.yml
+
+  # Deploy to Vercel Production
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: quality-gates
+    timeout-minutes: 15
+    outputs:
+      deployment_url: ${{ steps.deploy.outputs.url }}
+      deployment_sha: ${{ steps.info.outputs.sha }}
+      deployment_tag: ${{ steps.info.outputs.tag }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deployment Information
+        id: info
+        run: |
+          SHA="${GITHUB_SHA}"
+          SHORT_SHA="${SHA:0:7}"
+          TAG="deploy-$(date +%Y%m%d-%H%M%S)-${SHORT_SHA}"
+
+          echo "sha=${SHA}" >> $GITHUB_OUTPUT
+          echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+
+          echo "📦 Deployment Information"
+          echo "  SHA: ${SHA}"
+          echo "  Short SHA: ${SHORT_SHA}"
+          echo "  Tag: ${TAG}"
+          echo "  Branch: ${GITHUB_REF_NAME}"
+          echo "  Actor: ${GITHUB_ACTOR}"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build application
+        run: pnpm run build
+
+      - name: Deploy to Vercel Production
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          # Install Vercel CLI
+          pnpm add -g vercel@latest
+
+          echo "🚀 Deploying to Vercel Production..."
+
+          # Deploy to production
+          DEPLOY_URL=$(vercel deploy --prod --yes --token=$VERCEL_TOKEN 2>&1 | tee /tmp/vercel-output.txt | grep -oP 'https://[^\s]+' | tail -1)
+
+          if [ -z "$DEPLOY_URL" ]; then
+            echo "❌ Failed to get deployment URL"
+            echo "Vercel output:"
+            cat /tmp/vercel-output.txt
+            exit 1
+          fi
+
+          echo "url=${DEPLOY_URL}" >> $GITHUB_OUTPUT
+          echo ""
+          echo "✅ Deployed to: ${DEPLOY_URL}"
+
+      - name: Create Deployment Metadata
+        run: |
+          cat > deployment-metadata.json <<EOF
+          {
+            "deploy_tag": "${{ steps.info.outputs.tag }}",
+            "sha": "${{ steps.info.outputs.sha }}",
+            "short_sha": "${{ steps.info.outputs.short_sha }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "deployment_url": "${{ steps.deploy.outputs.url }}",
+            "environment": "production",
+            "deployed_by": "${{ github.actor }}",
+            "branch": "${{ github.ref_name }}",
+            "workflow_run": "${{ github.run_id }}"
+          }
+          EOF
+
+          echo "📝 Deployment Metadata:"
+          cat deployment-metadata.json | jq '.'
+
+      - name: Upload Deployment Metadata
+        uses: actions/upload-artifact@v3
+        with:
+          name: deployment-metadata
+          path: deployment-metadata.json
+          retention-days: 90
+
+  # Post-Deployment Health Check
+  health-check:
+    name: Post-Deployment Health Check
+    runs-on: ubuntu-latest
+    needs: deploy
+    timeout-minutes: 10
+    outputs:
+      health_status: ${{ steps.health.outputs.status }}
+
+    steps:
+      - name: Checkout code (for health check script)
+        uses: actions/checkout@v4
+
+      - name: Wait for Deployment Stabilization
+        run: |
+          echo "⏳ Waiting ${{ env.STABILIZATION_WAIT }}s for service to stabilize..."
+          sleep ${{ env.STABILIZATION_WAIT }}
+
+      - name: Run Health Checks
+        id: health
+        continue-on-error: true
+        run: |
+          DEPLOY_URL="${{ needs.deploy.outputs.deployment_url }}"
+          HEALTH_URL="${DEPLOY_URL}/api/health"
+
+          echo "🏥 Running health checks"
+          echo "URL: ${HEALTH_URL}"
+          echo ""
+
+          MAX_ATTEMPTS=${{ env.HEALTH_CHECK_ATTEMPTS }}
+          RETRY_DELAY=${{ env.HEALTH_CHECK_INTERVAL }}
+          SUCCESS=false
+
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "Health Check Attempt $i/$MAX_ATTEMPTS"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+            RESPONSE=$(curl -s -w "\n%{http_code}" "$HEALTH_URL" 2>&1 || echo "0")
+            HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+            BODY=$(echo "$RESPONSE" | sed '$d')
+
+            echo "HTTP Code: ${HTTP_CODE}"
+
+            if [ "$HTTP_CODE" -eq 200 ]; then
+              echo "✅ Health check PASSED"
+              echo ""
+              echo "Response:"
+              echo "$BODY" | jq '.' 2>/dev/null || echo "$BODY"
+              SUCCESS=true
+              break
+            else
+              echo "❌ Health check FAILED (HTTP ${HTTP_CODE})"
+
+              if [ $i -lt $MAX_ATTEMPTS ]; then
+                echo "⏳ Retrying in ${RETRY_DELAY}s..."
+                echo ""
+                sleep $RETRY_DELAY
+              fi
+            fi
+          done
+
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+          if [ "$SUCCESS" = true ]; then
+            echo "status=passed" >> $GITHUB_OUTPUT
+            echo "✅ All health checks passed"
+            exit 0
+          else
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "❌ Health checks failed after ${MAX_ATTEMPTS} attempts"
+            exit 1
+          fi
+
+      - name: Health Check Summary
+        if: always()
+        run: |
+          echo "# Health Check Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.health.outputs.status }}" = "passed" ]; then
+            echo "## ✅ Health Checks Passed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "All health checks completed successfully." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "- **Deployment URL:** ${{ needs.deploy.outputs.deployment_url }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Attempts:** ${{ env.HEALTH_CHECK_ATTEMPTS }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Status:** Healthy" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ❌ Health Checks Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Health checks failed after ${{ env.HEALTH_CHECK_ATTEMPTS }} attempts." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Automatic rollback will be triggered.**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "- **Deployment URL:** ${{ needs.deploy.outputs.deployment_url }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Failed SHA:** ${{ needs.deploy.outputs.deployment_sha }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # Tag successful deployment
+  tag-success:
+    name: Tag Successful Deployment
+    runs-on: ubuntu-latest
+    needs: [deploy, health-check]
+    if: success()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Success Tag
+        run: |
+          TAG="${{ needs.deploy.outputs.deployment_tag }}-success"
+
+          echo "🏷️  Creating deployment success tag: ${TAG}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git tag -a "${TAG}" -m "Successful deployment" \
+            -m "SHA: ${{ needs.deploy.outputs.deployment_sha }}" \
+            -m "URL: ${{ needs.deploy.outputs.deployment_url }}" \
+            -m "Deployed by: ${{ github.actor }}" \
+            -m "Workflow: ${{ github.run_id }}"
+
+          git push origin "${TAG}"
+
+          echo "✅ Tag created: ${TAG}"
+
+  # Automatic rollback on health check failure
+  auto-rollback:
+    name: Automatic Rollback
+    needs: [deploy, health-check]
+    if: failure() && needs.health-check.outputs.health_status == 'failed'
+    uses: ./.github/workflows/rollback.yml
+    with:
+      failed_deployment_sha: ${{ needs.deploy.outputs.deployment_sha }}
+      reason: "Automatic rollback - Health check failed after ${{ env.HEALTH_CHECK_ATTEMPTS }} attempts"
+      environment: "production"
+    secrets: inherit
+
+  # Notify on deployment status
+  notify:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    needs: [deploy, health-check, auto-rollback]
+    if: always()
+
+    steps:
+      - name: Deployment Summary
+        run: |
+          echo "# Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Details" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **SHA** | \`${{ needs.deploy.outputs.deployment_sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Deployment URL** | ${{ needs.deploy.outputs.deployment_url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Health Check** | ${{ needs.health-check.outputs.health_status }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Deployed By** | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.health-check.outputs.health_status }}" = "failed" ]; then
+            echo "| **Rollback** | Triggered |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| **Status** | ✅ Success |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Notify Slack on Success
+        if: success() && needs.health-check.outputs.health_status == 'passed' && vars.SLACK_WEBHOOK_URL
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "✅ Production Deployment Successful",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "✅ Production Deployment Successful"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*SHA:*\n`${{ needs.deploy.outputs.deployment_sha }}`"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Deployed By:*\n@${{ github.actor }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Health Check:*\n✅ Passed"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Branch:*\n${{ github.ref_name }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Deployment URL:* ${{ needs.deploy.outputs.deployment_url }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ vars.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Notify Slack on Rollback
+        if: needs.health-check.outputs.health_status == 'failed' && vars.SLACK_WEBHOOK_URL
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "🔄 Automatic Rollback Triggered",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "⚠️ Deployment Failed - Rollback Triggered"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Failed SHA:*\n`${{ needs.deploy.outputs.deployment_sha }}`"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Deployed By:*\n@${{ github.actor }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Health Check:*\n❌ Failed"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Rollback:*\n🔄 Automatic"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "⚠️ *Automatic rollback has been triggered.* Check workflow for details:\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ vars.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

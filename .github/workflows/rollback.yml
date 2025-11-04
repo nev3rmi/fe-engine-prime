@@ -1,0 +1,368 @@
+name: Automated Rollback
+
+# Rollback workflow for fe-engine-prime
+# Can be triggered manually or automatically on deployment failure
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for rollback (required)'
+        required: true
+        type: string
+      target_sha:
+        description: 'Target SHA to rollback to (leave empty for previous successful deployment)'
+        required: false
+        type: string
+      environment:
+        description: 'Environment to rollback'
+        required: true
+        type: choice
+        default: 'production'
+        options:
+          - production
+          - staging
+          - preview
+
+  workflow_call:
+    inputs:
+      failed_deployment_sha:
+        description: 'SHA of failed deployment'
+        required: true
+        type: string
+      reason:
+        description: 'Reason for rollback'
+        required: true
+        type: string
+      environment:
+        description: 'Environment to rollback'
+        required: false
+        type: string
+        default: 'production'
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "9"
+
+jobs:
+  rollback:
+    name: Execute Rollback
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history for git operations
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Display Rollback Information
+        run: |
+          echo "════════════════════════════════════════════════"
+          echo "  Rollback Initiated"
+          echo "════════════════════════════════════════════════"
+          echo ""
+          echo "Reason: ${{ inputs.reason }}"
+          echo "Environment: ${{ inputs.environment || 'production' }}"
+          echo "Triggered by: ${{ github.actor }}"
+          echo "Trigger: ${{ github.event_name }}"
+          if [ -n "${{ inputs.failed_deployment_sha }}" ]; then
+            echo "Failed SHA: ${{ inputs.failed_deployment_sha }}"
+          fi
+          if [ -n "${{ inputs.target_sha }}" ]; then
+            echo "Target SHA: ${{ inputs.target_sha }}"
+          fi
+          echo ""
+
+      - name: Determine Rollback Target
+        id: target
+        run: |
+          TARGET_SHA=""
+
+          # If target SHA provided, use it
+          if [ -n "${{ inputs.target_sha }}" ]; then
+            TARGET_SHA="${{ inputs.target_sha }}"
+            echo "Using provided target SHA: ${TARGET_SHA}"
+          else
+            # Find previous successful deployment
+            echo "Searching for previous successful deployment..."
+
+            # Look for deploy-success tags
+            DEPLOY_TAGS=$(git tag -l "deploy-success-*" --sort=-creatordate)
+
+            if [ -n "$DEPLOY_TAGS" ]; then
+              # Get the most recent successful deployment
+              LATEST_TAG=$(echo "$DEPLOY_TAGS" | head -1)
+              TARGET_SHA=$(git rev-list -n 1 "$LATEST_TAG")
+              echo "Found successful deployment tag: ${LATEST_TAG}"
+              echo "Target SHA: ${TARGET_SHA}"
+            else
+              # Fallback: get previous commit on current branch
+              TARGET_SHA=$(git log --pretty=format:"%H" -n 2 | tail -1)
+              echo "No deployment tags found, using previous commit: ${TARGET_SHA}"
+            fi
+          fi
+
+          # Validate SHA exists
+          if ! git cat-file -e "${TARGET_SHA}^{commit}" 2>/dev/null; then
+            echo "❌ Error: Invalid or non-existent SHA: ${TARGET_SHA}"
+            exit 1
+          fi
+
+          # Get commit info
+          COMMIT_MSG=$(git log --format=%B -n 1 "${TARGET_SHA}" | head -1)
+          COMMIT_AUTHOR=$(git log --format="%an" -n 1 "${TARGET_SHA}")
+          COMMIT_DATE=$(git log --format="%cd" -n 1 "${TARGET_SHA}")
+
+          echo ""
+          echo "Rollback Target Details:"
+          echo "  SHA: ${TARGET_SHA}"
+          echo "  Message: ${COMMIT_MSG}"
+          echo "  Author: ${COMMIT_AUTHOR}"
+          echo "  Date: ${COMMIT_DATE}"
+          echo ""
+
+          # Set outputs
+          echo "sha=${TARGET_SHA}" >> $GITHUB_OUTPUT
+          echo "short_sha=${TARGET_SHA:0:7}" >> $GITHUB_OUTPUT
+          echo "commit_msg=${COMMIT_MSG}" >> $GITHUB_OUTPUT
+
+      - name: Checkout Target Version
+        run: |
+          echo "Checking out target version: ${{ steps.target.outputs.sha }}"
+          git checkout ${{ steps.target.outputs.sha }}
+
+          echo ""
+          echo "Current commit:"
+          git log --oneline -1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: |
+          echo "Installing dependencies for target version..."
+          pnpm install --frozen-lockfile
+
+      - name: Build Application
+        run: |
+          echo "Building application..."
+          pnpm run build
+
+      - name: Deploy to Vercel (Rollback)
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          # Install Vercel CLI
+          pnpm add -g vercel@latest
+
+          # Deploy based on environment
+          ENVIRONMENT="${{ inputs.environment || 'production' }}"
+
+          echo "Deploying to ${ENVIRONMENT}..."
+
+          if [ "$ENVIRONMENT" = "production" ]; then
+            DEPLOY_URL=$(vercel deploy --prod --yes --token=$VERCEL_TOKEN)
+          else
+            DEPLOY_URL=$(vercel deploy --yes --token=$VERCEL_TOKEN)
+          fi
+
+          echo "deploy_url=${DEPLOY_URL}" >> $GITHUB_OUTPUT
+          echo ""
+          echo "✅ Deployment completed"
+          echo "URL: ${DEPLOY_URL}"
+
+      - name: Wait for Deployment Stabilization
+        run: |
+          echo "Waiting 60 seconds for service to stabilize..."
+          sleep 60
+
+      - name: Health Check Validation
+        id: health_check
+        run: |
+          DEPLOY_URL="${{ steps.deploy.outputs.deploy_url }}"
+          HEALTH_URL="${DEPLOY_URL}/api/health"
+
+          echo "Running health checks against: ${HEALTH_URL}"
+          echo ""
+
+          MAX_ATTEMPTS=3
+          RETRY_DELAY=30
+          SUCCESS=false
+
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            echo "Health check attempt $i/$MAX_ATTEMPTS..."
+
+            RESPONSE=$(curl -s -w "\n%{http_code}" "$HEALTH_URL" 2>/dev/null || echo "0")
+            HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+            BODY=$(echo "$RESPONSE" | head -n -1)
+
+            if [ "$HTTP_CODE" -eq 200 ]; then
+              echo "✅ Health check passed"
+              echo ""
+              echo "Response:"
+              echo "$BODY" | jq '.' 2>/dev/null || echo "$BODY"
+              SUCCESS=true
+              break
+            else
+              echo "❌ Health check failed (HTTP ${HTTP_CODE})"
+
+              if [ $i -lt $MAX_ATTEMPTS ]; then
+                echo "Retrying in ${RETRY_DELAY}s..."
+                sleep $RETRY_DELAY
+              fi
+            fi
+          done
+
+          if [ "$SUCCESS" = false ]; then
+            echo ""
+            echo "❌ Health check failed after ${MAX_ATTEMPTS} attempts"
+            echo "health_check_status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          echo "health_check_status=passed" >> $GITHUB_OUTPUT
+
+      - name: Tag Successful Rollback
+        if: success()
+        run: |
+          ROLLBACK_TAG="rollback-$(date +%Y%m%d-%H%M%S)-${{ steps.target.outputs.short_sha }}"
+
+          echo "Creating rollback tag: ${ROLLBACK_TAG}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git tag -a "${ROLLBACK_TAG}" -m "Rollback to ${{ steps.target.outputs.sha }}" -m "Reason: ${{ inputs.reason }}"
+          git push origin "${ROLLBACK_TAG}"
+
+          echo ""
+          echo "✅ Rollback tag created: ${ROLLBACK_TAG}"
+
+      - name: Create Rollback Summary
+        if: always()
+        run: |
+          echo "# Rollback Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Details" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Status** | ${{ job.status }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Reason** | ${{ inputs.reason }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Environment** | ${{ inputs.environment || 'production' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Target SHA** | \`${{ steps.target.outputs.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit** | ${{ steps.target.outputs.commit_msg }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Deployment URL** | ${{ steps.deploy.outputs.deploy_url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Health Check** | ${{ steps.health_check.outputs.health_check_status }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Triggered By** | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify Slack on Success
+        if: success() && vars.SLACK_WEBHOOK_URL
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "🔄 Rollback Successful",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "✅ Rollback Completed Successfully"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Environment:*\n${{ inputs.environment || 'production' }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Reason:*\n${{ inputs.reason }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Target SHA:*\n`${{ steps.target.outputs.short_sha }}`"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Triggered By:*\n@${{ github.actor }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Deployment URL:* ${{ steps.deploy.outputs.deploy_url }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ vars.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Notify Slack on Failure
+        if: failure() && vars.SLACK_WEBHOOK_URL
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "❌ Rollback Failed",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "❌ Rollback Failed"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Environment:*\n${{ inputs.environment || 'production' }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Reason:*\n${{ inputs.reason }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Target SHA:*\n`${{ steps.target.outputs.short_sha }}`"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Triggered By:*\n@${{ github.actor }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "⚠️ *Manual intervention required!*\nCheck workflow logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ vars.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
