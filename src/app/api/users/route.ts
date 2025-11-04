@@ -1,9 +1,9 @@
-import type { NextRequest} from "next/server";
-import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
-import { getUsers } from "@/lib/auth/user-service"
-import { withAuth } from "@/lib/middleware/auth"
-import { Permission } from "@/types/auth"
+import { getUsers } from "@/lib/auth/user-service";
+import { withAuth } from "@/lib/middleware/auth";
+import { Permission } from "@/types/auth";
 
 /**
  * GET /api/users - Get all users (with pagination and filtering)
@@ -11,11 +11,11 @@ import { Permission } from "@/types/auth"
  */
 export const GET = withAuth<any>(
   async (request: NextRequest, { user }) => {
-    const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get("page") || "1")
-    const limit = parseInt(searchParams.get("limit") || "10")
-    const role = searchParams.get("role") as any
-    const isActive = searchParams.get("isActive")
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const role = searchParams.get("role") as any;
+    const isActive = searchParams.get("isActive");
 
     try {
       const result = await getUsers({
@@ -23,18 +23,15 @@ export const GET = withAuth<any>(
         limit,
         role,
         ...(isActive !== null && { isActive: isActive === "true" }),
-      })
+      });
 
-      return NextResponse.json(result)
+      return NextResponse.json(result);
     } catch (error) {
-      console.error("Error fetching users:", error)
-      return NextResponse.json(
-        { error: "Failed to fetch users" },
-        { status: 500 }
-      )
+      console.error("Error fetching users:", error);
+      return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 });
     }
   },
   {
     requiredPermissions: [Permission.READ_USER],
   }
-)
+);

@@ -286,7 +286,7 @@ export interface ConversationalAvatarProps {
   userId?: string;
 
   /** TTS provider selection */
-  ttsProvider?: 'server' | 'browser';
+  ttsProvider?: "server" | "browser";
 
   /** TTS language code */
   ttsLanguage?: string;

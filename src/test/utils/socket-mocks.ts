@@ -1,9 +1,9 @@
-import { vi } from 'vitest'
-import { Socket } from 'socket.io-client'
+import { vi } from "vitest";
+import { Socket } from "socket.io-client";
 
 // Mock Socket.io instance
 export const createMockSocket = (): Partial<Socket> => ({
-  id: 'mock-socket-id',
+  id: "mock-socket-id",
   connected: true,
   on: vi.fn(),
   off: vi.fn(),
@@ -15,27 +15,27 @@ export const createMockSocket = (): Partial<Socket> => ({
   listenerCount: vi.fn(() => 0),
   once: vi.fn(),
   hasListeners: vi.fn(() => false),
-  compress: vi.fn(() => ({} as any)),
-  timeout: vi.fn(() => ({} as any)),
+  compress: vi.fn(() => ({}) as any),
+  timeout: vi.fn(() => ({}) as any),
   close: vi.fn(),
   open: vi.fn(),
   io: {} as any,
-})
+});
 
 // Mock Socket.io client
 export const mockSocketIoClient = (socket: Partial<Socket> = createMockSocket()) => {
-  const { io } = vi.mocked(await vi.importMocked('socket.io-client'))
-  io.mockReturnValue(socket as Socket)
-  return socket
-}
+  const { io } = vi.mocked(await vi.importMocked("socket.io-client"));
+  io.mockReturnValue(socket as Socket);
+  return socket;
+};
 
 // Mock real-time hooks
 export const mockRealtimeHooks = () => {
-  vi.mock('@/lib/hooks/use-realtime', () => ({
+  vi.mock("@/lib/hooks/use-realtime", () => ({
     useRealtime: vi.fn(() => ({
       socket: createMockSocket(),
       isConnected: true,
-      connectionStatus: 'connected',
+      connectionStatus: "connected",
       currentUser: null,
       connect: vi.fn(),
       disconnect: vi.fn(),
@@ -43,9 +43,9 @@ export const mockRealtimeHooks = () => {
       on: vi.fn(),
       off: vi.fn(),
     })),
-  }))
+  }));
 
-  vi.mock('@/lib/hooks/use-presence', () => ({
+  vi.mock("@/lib/hooks/use-presence", () => ({
     usePresence: vi.fn(() => ({
       onlineUsers: [],
       userCount: 0,
@@ -53,7 +53,7 @@ export const mockRealtimeHooks = () => {
       updatePresence: vi.fn(),
     })),
     useUserPresence: vi.fn(() => ({
-      status: 'offline',
+      status: "offline",
       lastSeen: null,
       setStatus: vi.fn(),
     })),
@@ -63,9 +63,9 @@ export const mockRealtimeHooks = () => {
       joinRoom: vi.fn(),
       leaveRoom: vi.fn(),
     })),
-  }))
+  }));
 
-  vi.mock('@/lib/hooks/use-chat', () => ({
+  vi.mock("@/lib/hooks/use-chat", () => ({
     useChat: vi.fn(() => ({
       messages: [],
       sendMessage: vi.fn(),
@@ -78,9 +78,9 @@ export const mockRealtimeHooks = () => {
       typingUsers: [],
       setTyping: vi.fn(),
     })),
-  }))
+  }));
 
-  vi.mock('@/lib/hooks/use-notifications', () => ({
+  vi.mock("@/lib/hooks/use-notifications", () => ({
     useNotifications: vi.fn(() => ({
       notifications: [],
       unreadCount: 0,
@@ -90,9 +90,9 @@ export const mockRealtimeHooks = () => {
       clearAll: vi.fn(),
       sendNotification: vi.fn(),
     })),
-  }))
+  }));
 
-  vi.mock('@/lib/hooks/use-data-sync', () => ({
+  vi.mock("@/lib/hooks/use-data-sync", () => ({
     useDataSync: vi.fn(() => ({
       data: null,
       isLoading: false,
@@ -102,93 +102,94 @@ export const mockRealtimeHooks = () => {
       unsubscribe: vi.fn(),
       refresh: vi.fn(),
     })),
-  }))
-}
+  }));
+};
 
 // Socket event emitter helper
 export class MockSocketEventEmitter {
-  private listeners: Map<string, Function[]> = new Map()
+  private listeners: Map<string, Function[]> = new Map();
 
   on(event: string, callback: Function) {
     if (!this.listeners.has(event)) {
-      this.listeners.set(event, [])
+      this.listeners.set(event, []);
     }
-    this.listeners.get(event)?.push(callback)
+    this.listeners.get(event)?.push(callback);
   }
 
   emit(event: string, ...args: any[]) {
-    const callbacks = this.listeners.get(event) || []
-    callbacks.forEach(callback => callback(...args))
+    const callbacks = this.listeners.get(event) || [];
+    callbacks.forEach(callback => callback(...args));
   }
 
   off(event: string, callback?: Function) {
     if (!callback) {
-      this.listeners.delete(event)
-      return
+      this.listeners.delete(event);
+      return;
     }
-    const callbacks = this.listeners.get(event) || []
-    const index = callbacks.indexOf(callback)
+    const callbacks = this.listeners.get(event) || [];
+    const index = callbacks.indexOf(callback);
     if (index > -1) {
-      callbacks.splice(index, 1)
+      callbacks.splice(index, 1);
     }
   }
 
   removeAllListeners(event?: string) {
     if (event) {
-      this.listeners.delete(event)
+      this.listeners.delete(event);
     } else {
-      this.listeners.clear()
+      this.listeners.clear();
     }
   }
 }
 
 // Mock WebSocket server for integration tests
 export const mockWebSocketServer = () => {
-  const mockServer = new MockSocketEventEmitter()
+  const mockServer = new MockSocketEventEmitter();
 
   // Mock server-side Socket.io
-  vi.mock('@/lib/realtime/server', () => ({
+  vi.mock("@/lib/realtime/server", () => ({
     initializeSocketServer: vi.fn(() => mockServer),
     authenticateSocket: vi.fn(() => Promise.resolve(true)),
-  }))
+  }));
 
-  return mockServer
-}
+  return mockServer;
+};
 
 // Common socket event scenarios
 export const socketEventScenarios = {
-  connect: (socket: any) => socket.emit('connect'),
-  disconnect: (socket: any) => socket.emit('disconnect'),
-  userJoin: (socket: any, user: any) => socket.emit('user:join', user),
-  userLeave: (socket: any, user: any) => socket.emit('user:leave', user),
-  messageReceived: (socket: any, message: any) => socket.emit('message:received', message),
-  presenceUpdate: (socket: any, presence: any) => socket.emit('presence:update', presence),
-  notificationReceived: (socket: any, notification: any) => socket.emit('notification:received', notification),
-  dataSync: (socket: any, data: any) => socket.emit('data:sync', data),
-}
+  connect: (socket: any) => socket.emit("connect"),
+  disconnect: (socket: any) => socket.emit("disconnect"),
+  userJoin: (socket: any, user: any) => socket.emit("user:join", user),
+  userLeave: (socket: any, user: any) => socket.emit("user:leave", user),
+  messageReceived: (socket: any, message: any) => socket.emit("message:received", message),
+  presenceUpdate: (socket: any, presence: any) => socket.emit("presence:update", presence),
+  notificationReceived: (socket: any, notification: any) =>
+    socket.emit("notification:received", notification),
+  dataSync: (socket: any, data: any) => socket.emit("data:sync", data),
+};
 
 // Helper to simulate socket connection lifecycle
 export const simulateSocketConnection = async (socket: any, user?: any) => {
-  socketEventScenarios.connect(socket)
+  socketEventScenarios.connect(socket);
 
   if (user) {
-    socketEventScenarios.userJoin(socket, user)
-    socketEventScenarios.presenceUpdate(socket, { userId: user.id, status: 'online' })
+    socketEventScenarios.userJoin(socket, user);
+    socketEventScenarios.presenceUpdate(socket, { userId: user.id, status: "online" });
   }
 
   // Simulate connection delay
-  await new Promise(resolve => setTimeout(resolve, 100))
-}
+  await new Promise(resolve => setTimeout(resolve, 100));
+};
 
 // Helper to simulate socket disconnection
 export const simulateSocketDisconnection = async (socket: any, user?: any) => {
   if (user) {
-    socketEventScenarios.presenceUpdate(socket, { userId: user.id, status: 'offline' })
-    socketEventScenarios.userLeave(socket, user)
+    socketEventScenarios.presenceUpdate(socket, { userId: user.id, status: "offline" });
+    socketEventScenarios.userLeave(socket, user);
   }
 
-  socketEventScenarios.disconnect(socket)
+  socketEventScenarios.disconnect(socket);
 
   // Simulate disconnection delay
-  await new Promise(resolve => setTimeout(resolve, 100))
-}
+  await new Promise(resolve => setTimeout(resolve, 100));
+};

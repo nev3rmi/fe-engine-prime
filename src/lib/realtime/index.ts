@@ -13,11 +13,11 @@
  */
 
 // Core client functionality
-export * from './client';
-export * from './server';
+export * from "./client";
+export * from "./server";
 
 // Performance optimizations
-export * from './performance';
+export * from "./performance";
 
 // Import needed functions for initialization
 import {
@@ -25,20 +25,20 @@ import {
   getSocket,
   getPerformanceMetrics,
   isSocketConnected,
-  initializeRealtimeConfig
-} from './client';
-import { getOnlineUsersCount } from './server';
+  initializeRealtimeConfig,
+} from "./client";
+import { getOnlineUsersCount } from "./server";
 
 // React hooks
-export * from '../hooks/use-realtime';
-export * from '../hooks/use-presence';
-export * from '../hooks/use-chat';
-export * from '../hooks/use-data-sync';
-export * from '../hooks/use-notifications';
-export * from '../hooks/use-debounce';
+export * from "../hooks/use-realtime";
+export * from "../hooks/use-presence";
+export * from "../hooks/use-chat";
+export * from "../hooks/use-data-sync";
+export * from "../hooks/use-notifications";
+export * from "../hooks/use-debounce";
 
 // Types
-export * from '../../types/realtime';
+export * from "../../types/realtime";
 
 // Utility functions
 export {
@@ -59,7 +59,7 @@ export {
   setDebugLogging,
   getCurrentConfig,
   cleanup,
-} from './client';
+} from "./client";
 
 export {
   initializeSocketServer,
@@ -69,7 +69,7 @@ export {
   sendSystemNotification,
   getOnlineUsersCount,
   getOnlineUsers,
-} from './server';
+} from "./server";
 
 export {
   throttleEvent,
@@ -83,11 +83,11 @@ export {
   connectionPool,
   metricsCollector,
   globalCleanup,
-} from './performance';
+} from "./performance";
 
 // Default configuration
 export const REALTIME_CONFIG = {
-  SERVER_URL: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+  SERVER_URL: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
   AUTO_CONNECT: true,
   RECONNECT_ATTEMPTS: 5,
   RECONNECT_DELAY: 1000,
@@ -95,50 +95,50 @@ export const REALTIME_CONFIG = {
   PRESENCE_UPDATE_INTERVAL: 30000,
   MESSAGE_HISTORY_LIMIT: 100,
   NOTIFICATION_RETENTION_DAYS: 7,
-  ENABLE_DEBUG_LOGS: process.env.NODE_ENV === 'development',
+  ENABLE_DEBUG_LOGS: process.env.NODE_ENV === "development",
 } as const;
 
 // Event names constants
 export const SOCKET_EVENTS = {
   // Authentication
-  AUTH_AUTHENTICATE: 'auth:authenticate',
+  AUTH_AUTHENTICATE: "auth:authenticate",
 
   // Presence
-  PRESENCE_JOIN: 'presence:join',
-  PRESENCE_LEAVE: 'presence:leave',
-  PRESENCE_STATUS: 'presence:status',
-  PRESENCE_UPDATE: 'presence:update',
-  USER_ONLINE: 'user:online',
-  USER_OFFLINE: 'user:offline',
+  PRESENCE_JOIN: "presence:join",
+  PRESENCE_LEAVE: "presence:leave",
+  PRESENCE_STATUS: "presence:status",
+  PRESENCE_UPDATE: "presence:update",
+  USER_ONLINE: "user:online",
+  USER_OFFLINE: "user:offline",
 
   // Messages
-  MESSAGE_SEND: 'message:send',
-  MESSAGE_NEW: 'message:new',
-  MESSAGE_EDIT: 'message:edit',
-  MESSAGE_DELETE: 'message:delete',
-  MESSAGE_TYPING: 'message:typing',
+  MESSAGE_SEND: "message:send",
+  MESSAGE_NEW: "message:new",
+  MESSAGE_EDIT: "message:edit",
+  MESSAGE_DELETE: "message:delete",
+  MESSAGE_TYPING: "message:typing",
 
   // Rooms
-  ROOM_JOIN: 'room:join',
-  ROOM_LEAVE: 'room:leave',
+  ROOM_JOIN: "room:join",
+  ROOM_LEAVE: "room:leave",
 
   // Data sync
-  DATA_SYNC: 'data:sync',
-  DATA_SUBSCRIBE: 'data:subscribe',
-  DATA_UNSUBSCRIBE: 'data:unsubscribe',
-  WIDGET_UPDATE: 'widget:update',
-  WIDGET_SUBSCRIBE: 'widget:subscribe',
-  WIDGET_UNSUBSCRIBE: 'widget:unsubscribe',
+  DATA_SYNC: "data:sync",
+  DATA_SUBSCRIBE: "data:subscribe",
+  DATA_UNSUBSCRIBE: "data:unsubscribe",
+  WIDGET_UPDATE: "widget:update",
+  WIDGET_SUBSCRIBE: "widget:subscribe",
+  WIDGET_UNSUBSCRIBE: "widget:unsubscribe",
 
   // Notifications
-  NOTIFICATION_NEW: 'notification:new',
-  NOTIFICATION_READ: 'notification:read',
-  NOTIFICATION_MARK_READ: 'notification:mark_read',
-  NOTIFICATION_MARK_ALL_READ: 'notification:mark_all_read',
+  NOTIFICATION_NEW: "notification:new",
+  NOTIFICATION_READ: "notification:read",
+  NOTIFICATION_MARK_READ: "notification:mark_read",
+  NOTIFICATION_MARK_ALL_READ: "notification:mark_all_read",
 
   // System
-  SYSTEM_MAINTENANCE: 'system:maintenance',
-  SYSTEM_ANNOUNCEMENT: 'system:announcement',
+  SYSTEM_MAINTENANCE: "system:maintenance",
+  SYSTEM_ANNOUNCEMENT: "system:announcement",
 } as const;
 
 // Helper function to initialize the real-time system
@@ -162,19 +162,18 @@ export const initializeRealtimeSystem = async (config?: {
       const socket = await createSocketConnection();
 
       if (socket) {
-        console.log('✅ Real-time system initialized successfully');
+        console.log("✅ Real-time system initialized successfully");
         return true;
       } else {
-        console.error('❌ Failed to initialize real-time system');
+        console.error("❌ Failed to initialize real-time system");
         return false;
       }
     }
 
-    console.log('⚙️ Real-time system configured (manual connection required)');
+    console.log("⚙️ Real-time system configured (manual connection required)");
     return true;
-
   } catch (error) {
-    console.error('❌ Error initializing real-time system:', error);
+    console.error("❌ Error initializing real-time system:", error);
     return false;
   }
 };
@@ -197,14 +196,26 @@ export const getRealtimeSystemHealth = () => {
       errors: metrics.errors,
     },
     performance: {
-      connectionQuality: metrics.latency < 50 ? 'excellent' :
-                        metrics.latency < 100 ? 'good' :
-                        metrics.latency < 200 ? 'fair' :
-                        metrics.latency < 500 ? 'poor' : 'very poor',
-      recommendedPollingInterval: metrics.latency < 50 ? 1000 :
-                                 metrics.latency < 100 ? 2000 :
-                                 metrics.latency < 200 ? 3000 :
-                                 metrics.latency < 500 ? 5000 : 10000,
+      connectionQuality:
+        metrics.latency < 50
+          ? "excellent"
+          : metrics.latency < 100
+            ? "good"
+            : metrics.latency < 200
+              ? "fair"
+              : metrics.latency < 500
+                ? "poor"
+                : "very poor",
+      recommendedPollingInterval:
+        metrics.latency < 50
+          ? 1000
+          : metrics.latency < 100
+            ? 2000
+            : metrics.latency < 200
+              ? 3000
+              : metrics.latency < 500
+                ? 5000
+                : 10000,
     },
     timestamp: new Date().toISOString(),
   };

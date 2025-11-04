@@ -1,11 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from "react";
 
-import { getSocket } from '@/lib/realtime/client';
-import type {
-  UsePresenceReturn,
-  OnlineUser,
-  PresenceStatus,
-} from '@/types/realtime';
+import { getSocket } from "@/lib/realtime/client";
+import type { UsePresenceReturn, OnlineUser, PresenceStatus } from "@/types/realtime";
 
 /**
  * Hook for managing user presence (online/offline status)
@@ -20,15 +16,17 @@ export const usePresence = (): UsePresenceReturn => {
 
   useEffect(() => {
     const socket = getSocket();
-    if (!socket) {return;}
+    if (!socket) {
+      return;
+    }
 
     socketRef.current = socket;
 
     // Join presence system
-    socket.emit('presence:join');
+    socket.emit("presence:join");
 
     // Listen for presence updates
-    socket.on('presence:update', (users: OnlineUser[]) => {
+    socket.on("presence:update", (users: OnlineUser[]) => {
       setOnlineUsers(users);
       setUserCount(users.length);
 
@@ -42,10 +40,10 @@ export const usePresence = (): UsePresenceReturn => {
       }
     });
 
-    socket.on('user:online', (user: Pick<OnlineUser, 'id' | 'name' | 'image' | 'role'>) => {
+    socket.on("user:online", (user: Pick<OnlineUser, "id" | "name" | "image" | "role">) => {
       const newUser: OnlineUser = {
         ...user,
-        status: 'online',
+        status: "online",
         lastActivity: new Date(),
       };
 
@@ -61,7 +59,7 @@ export const usePresence = (): UsePresenceReturn => {
       });
     });
 
-    socket.on('user:offline', (userId: string) => {
+    socket.on("user:offline", (userId: string) => {
       setOnlineUsers(prev => prev.filter(u => u.id !== userId));
 
       // If current user went offline, clear current user
@@ -73,10 +71,10 @@ export const usePresence = (): UsePresenceReturn => {
     // Cleanup on unmount
     return () => {
       if (socket) {
-        socket.off('presence:update');
-        socket.off('user:online');
-        socket.off('user:offline');
-        socket.emit('presence:leave');
+        socket.off("presence:update");
+        socket.off("user:online");
+        socket.off("user:offline");
+        socket.emit("presence:leave");
       }
     };
   }, []);
@@ -92,7 +90,7 @@ export const usePresence = (): UsePresenceReturn => {
   const updateStatus = useCallback((status: PresenceStatus) => {
     const socket = getSocket();
     if (socket) {
-      socket.emit('presence:status', status);
+      socket.emit("presence:status", status);
 
       // Update current user status locally
       setCurrentUser(prev => {
@@ -108,14 +106,20 @@ export const usePresence = (): UsePresenceReturn => {
     }
   }, []);
 
-  const isUserOnline = useCallback((userId: string): boolean => {
-    return onlineUsers.some(u => u.id === userId);
-  }, [onlineUsers]);
+  const isUserOnline = useCallback(
+    (userId: string): boolean => {
+      return onlineUsers.some(u => u.id === userId);
+    },
+    [onlineUsers]
+  );
 
-  const getUserStatus = useCallback((userId: string): PresenceStatus | null => {
-    const user = onlineUsers.find(u => u.id === userId);
-    return user?.status || null;
-  }, [onlineUsers]);
+  const getUserStatus = useCallback(
+    (userId: string): PresenceStatus | null => {
+      const user = onlineUsers.find(u => u.id === userId);
+      return user?.status || null;
+    },
+    [onlineUsers]
+  );
 
   return {
     onlineUsers,
@@ -150,15 +154,15 @@ export const useUserPresence = (userId: string) => {
  */
 export const usePresenceIndicator = () => {
   const { currentUser, updateStatus } = usePresence();
-  const [autoStatus, setAutoStatus] = useState<PresenceStatus>('online');
+  const [autoStatus, setAutoStatus] = useState<PresenceStatus>("online");
   const inactivityTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-update status based on activity
   useEffect(() => {
     const handleActivity = () => {
-      if (autoStatus !== 'online') {
-        setAutoStatus('online');
-        updateStatus('online');
+      if (autoStatus !== "online") {
+        setAutoStatus("online");
+        updateStatus("online");
       }
 
       // Reset inactivity timer
@@ -167,14 +171,17 @@ export const usePresenceIndicator = () => {
       }
 
       // Set to away after 5 minutes of inactivity
-      inactivityTimeoutRef.current = setTimeout(() => {
-        setAutoStatus('away');
-        updateStatus('away');
-      }, 5 * 60 * 1000); // 5 minutes
+      inactivityTimeoutRef.current = setTimeout(
+        () => {
+          setAutoStatus("away");
+          updateStatus("away");
+        },
+        5 * 60 * 1000
+      ); // 5 minutes
     };
 
     // Track user activity
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    const events = ["mousedown", "mousemove", "keypress", "scroll", "touchstart"];
     events.forEach(event => {
       document.addEventListener(event, handleActivity, true);
     });
@@ -182,16 +189,16 @@ export const usePresenceIndicator = () => {
     // Handle page visibility
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        setAutoStatus('away');
-        updateStatus('away');
+        setAutoStatus("away");
+        updateStatus("away");
       } else {
-        setAutoStatus('online');
-        updateStatus('online');
+        setAutoStatus("online");
+        updateStatus("online");
         handleActivity(); // Reset timer
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     // Initial activity
     handleActivity();
@@ -200,7 +207,7 @@ export const usePresenceIndicator = () => {
       events.forEach(event => {
         document.removeEventListener(event, handleActivity, true);
       });
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
 
       if (inactivityTimeoutRef.current) {
         clearTimeout(inactivityTimeoutRef.current);
@@ -224,24 +231,26 @@ export const useRoomPresence = (roomId: string) => {
 
   useEffect(() => {
     const socket = getSocket();
-    if (!socket) {return;}
+    if (!socket) {
+      return;
+    }
 
     // Join room for presence tracking
-    socket.emit('room:join', roomId, (success: boolean) => {
+    socket.emit("room:join", roomId, (success: boolean) => {
       if (!success) {
-        console.error('Failed to join room for presence:', roomId);
+        console.error("Failed to join room for presence:", roomId);
       }
     });
 
     // Listen for room-specific presence updates
-    socket.on('room:presence:update', (users: OnlineUser[]) => {
+    socket.on("room:presence:update", (users: OnlineUser[]) => {
       setRoomUsers(users);
     });
 
     return () => {
       if (socket) {
-        socket.off('room:presence:update');
-        socket.emit('room:leave', roomId, () => {});
+        socket.off("room:presence:update");
+        socket.emit("room:leave", roomId, () => {});
       }
     };
   }, [roomId]);

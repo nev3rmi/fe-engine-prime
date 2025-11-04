@@ -21,13 +21,15 @@ Complete guide for rolling back deployments in production.
 
 ## Overview
 
-The fe-engine-prime rollback system provides multiple ways to quickly revert to a previous working version:
+The fe-engine-prime rollback system provides multiple ways to quickly revert to
+a previous working version:
 
 - **Automatic Rollback:** Triggered on deployment failures (health check fails)
 - **Manual Rollback (GitHub Actions):** Trigger via GitHub UI
 - **Manual Rollback (CLI):** Run locally or in CI/CD
 
 **Key Features:**
+
 - ✅ Zero manual intervention for automatic rollbacks
 - ✅ Health check validation after rollback
 - ✅ Slack/Email notifications
@@ -43,6 +45,7 @@ The fe-engine-prime rollback system provides multiple ways to quickly revert to 
 The system automatically rolls back when:
 
 1. **Health Check Failure**
+
    - `/api/health` returns non-200 status code
    - Service unreachable after 3 attempts (90 seconds)
    - Health check times out
@@ -69,12 +72,14 @@ Trigger manual rollback when:
 ### Prerequisites
 
 1. **Repository Access**
+
    ```bash
    git clone <repository-url>
    cd fe-engine-prime
    ```
 
 2. **Vercel CLI Installed**
+
    ```bash
    npm install -g vercel@latest
    ```
@@ -95,6 +100,7 @@ Trigger manual rollback when:
 ```
 
 **Output:**
+
 ```
 ════════════════════════════════════════════════════════
   Available Rollback Targets
@@ -121,7 +127,8 @@ Deployment Tags:
 ./scripts/rollback.sh
 ```
 
-This automatically finds and rolls back to the most recent successful deployment.
+This automatically finds and rolls back to the most recent successful
+deployment.
 
 #### 3. Rollback to Specific Version
 
@@ -136,16 +143,19 @@ Replace `abc1234` with the SHA of the target version.
 The script performs the following steps:
 
 1. **Validate Environment**
+
    - Check git repository
    - Verify Vercel CLI available
    - Validate credentials
 
 2. **Determine Rollback Target**
+
    - Find previous successful deployment
    - Or use provided SHA
    - Validate SHA exists
 
 3. **Display Rollback Info**
+
    ```
    Rollback Target Information:
      SHA: abc1234567890...
@@ -156,17 +166,20 @@ The script performs the following steps:
    ```
 
 4. **Confirm Rollback**
+
    ```
    Proceed with rollback to abc1234? [y/N]
    ```
 
 5. **Execute Rollback**
+
    - Checkout target version
    - Install dependencies
    - Build application
    - Deploy to Vercel production
 
 6. **Validate Rollback**
+
    - Wait 60s for stabilization
    - Run health checks (3 attempts)
    - Verify response
@@ -252,12 +265,15 @@ Response:
 ### Trigger via GitHub UI
 
 1. **Go to Actions Tab**
+
    - Navigate to: `https://github.com/<org>/<repo>/actions`
 
 2. **Select Rollback Workflow**
+
    - Click on "Automated Rollback" workflow
 
 3. **Run Workflow**
+
    - Click "Run workflow" button
    - Fill in the form:
      - **Reason:** "Health check failing" (required)
@@ -266,6 +282,7 @@ Response:
    - Click "Run workflow"
 
 4. **Monitor Progress**
+
    - Workflow runs automatically
    - View real-time logs
    - Check for success/failure
@@ -310,6 +327,7 @@ Deploy → Post-Deploy Health Check → [FAIL] → Automatic Rollback
 **Trigger Conditions:**
 
 1. **Post-Deployment Health Check**
+
    - Wait 60s for service to stabilize
    - Run health check 3 times (30s interval)
    - If all 3 attempts fail → Trigger rollback
@@ -337,6 +355,7 @@ deploy:
 When automatic rollback is triggered:
 
 1. **Slack Notification**
+
    ```
    🔄 Automatic Rollback Triggered
 
@@ -348,6 +367,7 @@ When automatic rollback is triggered:
    ```
 
 2. **Email Alert**
+
    - Sent to engineering team
    - Includes rollback details
    - Attached logs
@@ -365,11 +385,13 @@ When automatic rollback is triggered:
 The rollback script/workflow automatically verifies:
 
 1. **Health Check**
+
    - `/api/health` returns 200
    - 3 attempts with 30s intervals
    - Validates JSON response
 
 2. **Response Time**
+
    - Checks response < 2s
    - Warns if > 5s
 
@@ -410,15 +432,18 @@ pnpm run test:e2e
 #### 1. Health Check Still Failing After Rollback
 
 **Symptoms:**
+
 - Rollback completes but health check fails
 - Service unreachable
 
 **Causes:**
+
 - Infrastructure issue (Vercel outage)
 - Database connectivity problem
 - External API dependency down
 
 **Resolution:**
+
 1. Check Vercel status: https://www.vercel-status.com/
 2. Verify database is running
 3. Check external API dependencies
@@ -427,14 +452,17 @@ pnpm run test:e2e
 #### 2. Rollback Script Fails to Find Previous Version
 
 **Symptoms:**
+
 - "No deployment tags found"
 - Falls back to previous commit
 
 **Causes:**
+
 - Deployment tags not created
 - Fresh repository clone
 
 **Resolution:**
+
 ```bash
 # List all commits
 git log --oneline -20
@@ -446,15 +474,18 @@ git log --oneline -20
 #### 3. Vercel Deployment Fails
 
 **Symptoms:**
+
 - "Failed to get deployment URL"
 - Vercel CLI errors
 
 **Causes:**
+
 - Invalid Vercel credentials
 - Project not found
 - Rate limiting
 
 **Resolution:**
+
 ```bash
 # Re-authenticate
 vercel login
@@ -469,15 +500,18 @@ echo $VERCEL_TOKEN
 #### 4. Build Fails During Rollback
 
 **Symptoms:**
+
 - `pnpm run build` fails
 - Dependencies not installing
 
 **Causes:**
+
 - Breaking changes in dependencies
 - Node version mismatch
 - Missing environment variables
 
 **Resolution:**
+
 ```bash
 # Clean install
 rm -rf node_modules .next
@@ -497,6 +531,7 @@ cat .env.local
 ### If Rollback Fails
 
 1. **Emergency Procedure**
+
    ```bash
    # Option 1: Rollback to last known good version
    ./scripts/rollback.sh <last-known-good-sha>
@@ -507,6 +542,7 @@ cat .env.local
    ```
 
 2. **Manual Vercel Rollback**
+
    - Go to Vercel Dashboard
    - Find project
    - Click "Deployments"
@@ -514,6 +550,7 @@ cat .env.local
    - Click "..." → "Promote to Production"
 
 3. **Emergency Hotfix**
+
    ```bash
    # Create hotfix branch from last good version
    git checkout -b hotfix/emergency <last-good-sha>
@@ -530,16 +567,19 @@ cat .env.local
 **This indicates a systemic issue, not a code problem.**
 
 1. **Check Infrastructure**
+
    - Vercel status
    - DNS configuration
    - CDN issues
 
 2. **Check Dependencies**
+
    - External APIs
    - Database connectivity
    - Third-party services
 
 3. **Enable Maintenance Mode** (if available)
+
    ```bash
    # Redirect to maintenance page
    vercel alias set <maintenance-deployment> production
@@ -603,23 +643,23 @@ Document rollback reasons:
 
 ## FAQ
 
-**Q: How long does a rollback take?**
-A: Typically 3-5 minutes (build + deploy + validation).
+**Q: How long does a rollback take?** A: Typically 3-5 minutes (build + deploy +
+validation).
 
-**Q: Will users experience downtime?**
-A: No, Vercel does zero-downtime deployments. Old version serves traffic until new version is ready.
+**Q: Will users experience downtime?** A: No, Vercel does zero-downtime
+deployments. Old version serves traffic until new version is ready.
 
-**Q: Can I rollback to any previous version?**
-A: Yes, any commit in git history.
+**Q: Can I rollback to any previous version?** A: Yes, any commit in git
+history.
 
-**Q: What happens to database changes?**
-A: Currently no automatic database rollback. See FE-581 for planned database migration rollback.
+**Q: What happens to database changes?** A: Currently no automatic database
+rollback. See FE-581 for planned database migration rollback.
 
-**Q: Can I test rollback in staging first?**
-A: Yes, use `environment: staging` parameter in GitHub workflow.
+**Q: Can I test rollback in staging first?** A: Yes, use `environment: staging`
+parameter in GitHub workflow.
 
-**Q: What if rollback script is broken in the latest version?**
-A: Use GitHub Actions rollback (doesn't depend on code in repo).
+**Q: What if rollback script is broken in the latest version?** A: Use GitHub
+Actions rollback (doesn't depend on code in repo).
 
 ---
 

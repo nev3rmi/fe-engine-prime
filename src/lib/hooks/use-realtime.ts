@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from "react";
 
-import { useSession } from 'next-auth/react';
+import { useSession } from "next-auth/react";
 
 import {
   createSocketConnection,
@@ -11,13 +11,13 @@ import {
   getCurrentUser,
   getPerformanceMetrics,
   initializeRealtimeConfig,
-} from '@/lib/realtime/client';
+} from "@/lib/realtime/client";
 import type {
   UseRealtimeReturn,
   AuthenticatedUser,
   RealtimeConfig,
   PerformanceMetrics,
-} from '@/types/realtime';
+} from "@/types/realtime";
 
 /**
  * Main real-time hook for Socket.io connection management
@@ -91,40 +91,40 @@ export const useRealtime = (config?: Partial<RealtimeConfig>): UseRealtimeReturn
         socketRef.current = socket;
 
         // Connection event handlers
-        socket.on('connect', () => {
+        socket.on("connect", () => {
           setIsConnected(true);
           setConnectionError(null);
           setReconnectAttempts(0);
           setLastActivity(new Date());
         });
 
-        socket.on('disconnect', (reason) => {
+        socket.on("disconnect", reason => {
           setIsConnected(false);
-          if (reason === 'io server disconnect') {
-            setConnectionError('Server disconnected');
+          if (reason === "io server disconnect") {
+            setConnectionError("Server disconnected");
           }
         });
 
-        socket.on('connect_error', (error) => {
-          setConnectionError(error.message || 'Connection failed');
+        socket.on("connect_error", error => {
+          setConnectionError(error.message || "Connection failed");
           setIsConnected(false);
         });
 
-        socket.on('reconnect', (attemptNumber) => {
+        socket.on("reconnect", attemptNumber => {
           setReconnectAttempts(attemptNumber);
           setConnectionError(null);
         });
 
-        socket.on('reconnect_error', (error) => {
+        socket.on("reconnect_error", error => {
           setConnectionError(`Reconnection failed: ${error.message}`);
         });
 
-        socket.on('reconnect_failed', () => {
-          setConnectionError('Failed to reconnect after maximum attempts');
+        socket.on("reconnect_failed", () => {
+          setConnectionError("Failed to reconnect after maximum attempts");
         });
 
         // Auth event handler
-        socket.on('auth:authenticate', (success, user) => {
+        socket.on("auth:authenticate", (success, user) => {
           if (success && user) {
             setCurrentUser(user);
           }
@@ -134,10 +134,10 @@ export const useRealtime = (config?: Partial<RealtimeConfig>): UseRealtimeReturn
         const connected = await connectSocket();
         setIsConnected(connected);
       } else {
-        setConnectionError('Failed to create socket connection');
+        setConnectionError("Failed to create socket connection");
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown connection error';
+      const message = error instanceof Error ? error.message : "Unknown connection error";
       setConnectionError(message);
       setIsConnected(false);
     }
@@ -152,7 +152,7 @@ export const useRealtime = (config?: Partial<RealtimeConfig>): UseRealtimeReturn
       setConnectionError(null);
       setLastActivity(null);
     } catch (error) {
-      console.error('Error disconnecting:', error);
+      console.error("Error disconnecting:", error);
     }
   }, []);
 

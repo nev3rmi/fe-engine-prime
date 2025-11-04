@@ -7,18 +7,18 @@ on:
   workflow_dispatch:
     inputs:
       reason:
-        description: 'Reason for rollback (required)'
+        description: "Reason for rollback (required)"
         required: true
         type: string
       target_sha:
-        description: 'Target SHA to rollback to (leave empty for previous successful deployment)'
+        description: "Target SHA to rollback to (leave empty for previous successful deployment)"
         required: false
         type: string
       environment:
-        description: 'Environment to rollback'
+        description: "Environment to rollback"
         required: true
         type: choice
-        default: 'production'
+        default: "production"
         options:
           - production
           - staging
@@ -27,18 +27,18 @@ on:
   workflow_call:
     inputs:
       failed_deployment_sha:
-        description: 'SHA of failed deployment'
+        description: "SHA of failed deployment"
         required: true
         type: string
       reason:
-        description: 'Reason for rollback'
+        description: "Reason for rollback"
         required: true
         type: string
       environment:
-        description: 'Environment to rollback'
+        description: "Environment to rollback"
         required: false
         type: string
-        default: 'production'
+        default: "production"
 
 env:
   NODE_VERSION: "22"
@@ -54,7 +54,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Need full history for git operations
+          fetch-depth: 0 # Need full history for git operations
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Display Rollback Information
@@ -146,7 +146,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Install dependencies
         run: |

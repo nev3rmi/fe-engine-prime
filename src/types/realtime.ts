@@ -1,93 +1,123 @@
-import type { User, UserRole, Permission } from './auth';
+import type { User, UserRole, Permission } from "./auth";
 
 // Socket.io event types
 export interface ServerToClientEvents {
   // Authentication
-  'auth:authenticate': (success: boolean, user?: AuthenticatedUser) => void;
+  "auth:authenticate": (success: boolean, user?: AuthenticatedUser) => void;
 
   // Presence events
-  'user:online': (user: Pick<User, 'id' | 'name' | 'image' | 'role'>) => void;
-  'user:offline': (userId: string) => void;
-  'user:typing': (data: { userId: string; user: OnlineUser; isTyping: boolean }) => void;
-  'presence:update': (users: OnlineUser[]) => void;
+  "user:online": (user: Pick<User, "id" | "name" | "image" | "role">) => void;
+  "user:offline": (userId: string) => void;
+  "user:typing": (data: { userId: string; user: OnlineUser; isTyping: boolean }) => void;
+  "presence:update": (users: OnlineUser[]) => void;
 
   // Message events
-  'message:new': (message: ChatMessage) => void;
-  'message:edit': (message: Partial<ChatMessage> & { id: string }) => void;
-  'message:delete': (messageId: string) => void;
-  'message:reaction': (data: { messageId: string; reactions: any }) => void;
+  "message:new": (message: ChatMessage) => void;
+  "message:edit": (message: Partial<ChatMessage> & { id: string }) => void;
+  "message:delete": (messageId: string) => void;
+  "message:reaction": (data: { messageId: string; reactions: any }) => void;
 
   // Notification events
-  'notification:new': (notification: RealtimeNotification) => void;
-  'notification:read': (notificationId: string) => void;
+  "notification:new": (notification: RealtimeNotification) => void;
+  "notification:read": (notificationId: string) => void;
 
   // Data sync events
-  'data:sync': (data: SyncData) => void;
-  'widget:update': (widgetId: string, data: any) => void;
+  "data:sync": (data: SyncData) => void;
+  "widget:update": (widgetId: string, data: any) => void;
 
   // System events
-  'system:maintenance': (message: string, duration?: number) => void;
-  'system:announcement': (announcement: Announcement) => void;
+  "system:maintenance": (message: string, duration?: number) => void;
+  "system:announcement": (announcement: Announcement) => void;
 
   // Room events
-  'room:presence:update': (users: OnlineUser[]) => void;
+  "room:presence:update": (users: OnlineUser[]) => void;
 
   // Connection events
-  'reconnect': (attemptNumber: number) => void;
-  'reconnect_error': (error: Error) => void;
-  'reconnect_failed': () => void;
+  reconnect: (attemptNumber: number) => void;
+  reconnect_error: (error: Error) => void;
+  reconnect_failed: () => void;
 }
 
 export interface ClientToServerEvents {
   // Authentication
-  'auth:authenticate': (token: string, callback: (success: boolean, user?: AuthenticatedUser) => void) => void;
+  "auth:authenticate": (
+    token: string,
+    callback: (success: boolean, user?: AuthenticatedUser) => void
+  ) => void;
 
   // Presence events
-  'presence:join': () => void;
-  'presence:leave': () => void;
-  'presence:status': (status: PresenceStatus) => void;
-  'presence:update': (users: any) => void;
-  'user:join': (channelId: string) => void;
-  'user:leave': (channelId: string) => void;
+  "presence:join": () => void;
+  "presence:leave": () => void;
+  "presence:status": (status: PresenceStatus) => void;
+  "presence:update": (users: any) => void;
+  "user:join": (channelId: string) => void;
+  "user:leave": (channelId: string) => void;
 
   // Message events
-  'message:send': (message: NewChatMessage, callback: (success: boolean, message?: ChatMessage) => void) => void;
-  'message:edit': (messageId: string, content: string, callback: (success: boolean) => void) => void;
-  'message:delete': (messageId: string, callback: (success: boolean) => void) => void;
-  'message:typing': (channelId: string, isTyping: boolean) => void;
-  'message:add_reaction': (messageId: string, emoji: string, callback: (success: boolean) => void) => void;
-  'message:remove_reaction': (messageId: string, emoji: string, callback: (success: boolean) => void) => void;
-  'message:history': (params: { channelId: string; limit: number; before?: string }, callback?: (success: boolean, messages: ChatMessage[], hasMoreMessages: boolean) => void) => void;
-  'message:received': (messageId: string) => void;
+  "message:send": (
+    message: NewChatMessage,
+    callback: (success: boolean, message?: ChatMessage) => void
+  ) => void;
+  "message:edit": (
+    messageId: string,
+    content: string,
+    callback: (success: boolean) => void
+  ) => void;
+  "message:delete": (messageId: string, callback: (success: boolean) => void) => void;
+  "message:typing": (channelId: string, isTyping: boolean) => void;
+  "message:add_reaction": (
+    messageId: string,
+    emoji: string,
+    callback: (success: boolean) => void
+  ) => void;
+  "message:remove_reaction": (
+    messageId: string,
+    emoji: string,
+    callback: (success: boolean) => void
+  ) => void;
+  "message:history": (
+    params: { channelId: string; limit: number; before?: string },
+    callback?: (success: boolean, messages: ChatMessage[], hasMoreMessages: boolean) => void
+  ) => void;
+  "message:received": (messageId: string) => void;
 
   // Room management
-  'room:join': (roomId: string, callback: (success: boolean) => void) => void;
-  'room:leave': (roomId: string, callback: (success: boolean) => void) => void;
+  "room:join": (roomId: string, callback: (success: boolean) => void) => void;
+  "room:leave": (roomId: string, callback: (success: boolean) => void) => void;
 
   // Data subscriptions
-  'data:subscribe': (dataType: string, filters?: any) => void;
-  'data:unsubscribe': (dataType: string) => void;
-  'data:sync': (data: any) => void;
-  'data:update': (data: any, callback?: (success: boolean) => void) => void;
-  'data:request': (params: { type: string; filters?: any } | string, callback?: (success: boolean, data: any) => void) => void;
-  'widget:subscribe': (widgetId: string) => void;
-  'widget:unsubscribe': (widgetId: string) => void;
-  'widget:refresh': (widgetId: string, callback?: (success: boolean, data: any) => void) => void;
-  'widget:request': (widgetId: string, callback?: (success: boolean, data: any) => void) => void;
-  'widget:update_data': (widgetId: string, data: any, callback?: (success: boolean) => void) => void;
+  "data:subscribe": (dataType: string, filters?: any) => void;
+  "data:unsubscribe": (dataType: string) => void;
+  "data:sync": (data: any) => void;
+  "data:update": (data: any, callback?: (success: boolean) => void) => void;
+  "data:request": (
+    params: { type: string; filters?: any } | string,
+    callback?: (success: boolean, data: any) => void
+  ) => void;
+  "widget:subscribe": (widgetId: string) => void;
+  "widget:unsubscribe": (widgetId: string) => void;
+  "widget:refresh": (widgetId: string, callback?: (success: boolean, data: any) => void) => void;
+  "widget:request": (widgetId: string, callback?: (success: boolean, data: any) => void) => void;
+  "widget:update_data": (
+    widgetId: string,
+    data: any,
+    callback?: (success: boolean) => void
+  ) => void;
 
   // Notifications
-  'notification:mark_read': (notificationId: string) => void;
-  'notification:mark_all_read': () => void;
-  'notification:send': (notification: any, callback?: (success: boolean) => void) => void;
-  'notification:read': (notificationId: string) => void;
-  'notification:received': (notificationId: string) => void;
-  'notification:get_all': (callback: (success: boolean, notifications: RealtimeNotification[]) => void) => void;
+  "notification:mark_read": (notificationId: string) => void;
+  "notification:mark_all_read": () => void;
+  "notification:send": (notification: any, callback?: (success: boolean) => void) => void;
+  "notification:read": (notificationId: string) => void;
+  "notification:received": (notificationId: string) => void;
+  "notification:get_all": (
+    callback: (success: boolean, notifications: RealtimeNotification[]) => void
+  ) => void;
 
   // System events
-  'connect': () => void;
-  'disconnect': () => void;
-  'ping': () => void;
+  connect: () => void;
+  disconnect: () => void;
+  ping: () => void;
 }
 
 export interface InterServerEvents {
@@ -113,9 +143,9 @@ export interface OnlineUser {
   room?: string;
 }
 
-export type PresenceStatus = 'online' | 'away' | 'busy' | 'invisible';
+export type PresenceStatus = "online" | "away" | "busy" | "invisible";
 
-export interface AuthenticatedUser extends Pick<User, 'id' | 'name' | 'image' | 'email' | 'role'> {
+export interface AuthenticatedUser extends Pick<User, "id" | "name" | "image" | "email" | "role"> {
   permissions: Permission[];
   username?: string;
 }
@@ -126,7 +156,7 @@ export interface ChatMessage {
   content: string;
   type: MessageType;
   authorId: string;
-  author: Pick<User, 'id' | 'name' | 'image' | 'role'>;
+  author: Pick<User, "id" | "name" | "image" | "role">;
   channelId: string;
   replyToId?: string;
   attachments?: MessageAttachment[];
@@ -147,7 +177,7 @@ export interface NewChatMessage {
   mentions?: string[];
 }
 
-export type MessageType = 'text' | 'image' | 'file' | 'system' | 'announcement';
+export type MessageType = "text" | "image" | "file" | "system" | "announcement";
 
 export interface MessageAttachment {
   id: string;
@@ -178,16 +208,16 @@ export interface RealtimeNotification {
 }
 
 export type NotificationType =
-  | 'message'
-  | 'mention'
-  | 'system'
-  | 'warning'
-  | 'error'
-  | 'success'
-  | 'update'
-  | 'maintenance';
+  | "message"
+  | "mention"
+  | "system"
+  | "warning"
+  | "error"
+  | "success"
+  | "update"
+  | "maintenance";
 
-export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent';
+export type NotificationPriority = "low" | "normal" | "high" | "urgent";
 
 // Data synchronization types
 export interface SyncData {
@@ -211,8 +241,8 @@ export interface Announcement {
   id: string;
   title: string;
   content: string;
-  type: 'info' | 'warning' | 'maintenance' | 'feature';
-  priority: 'low' | 'normal' | 'high';
+  type: "info" | "warning" | "maintenance" | "feature";
+  priority: "low" | "normal" | "high";
   startDate: Date;
   endDate?: Date;
   targetRoles?: UserRole[];
@@ -232,7 +262,7 @@ export interface Room {
   createdAt: Date;
 }
 
-export type RoomType = 'general' | 'team' | 'project' | 'support' | 'admin';
+export type RoomType = "general" | "team" | "project" | "support" | "admin";
 
 // Real-time hooks return types
 export interface UseRealtimeReturn {

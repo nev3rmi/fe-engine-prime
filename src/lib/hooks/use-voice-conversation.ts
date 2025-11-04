@@ -26,7 +26,7 @@ export interface UseVoiceConversationOptions {
   onError?: (error: Error) => void;
   onAudioStart?: (duration: number) => void;
   autoRestart?: boolean;
-  ttsProvider?: 'server' | 'browser'; // TTS provider selection
+  ttsProvider?: "server" | "browser"; // TTS provider selection
   ttsLanguage?: string; // Language for TTS (e.g., 'vi-VN', 'en-US')
   browserVoiceName?: string; // Specific browser voice name to use
 }
@@ -41,8 +41,8 @@ export function useVoiceConversation(
     onError,
     onAudioStart,
     autoRestart = false,
-    ttsProvider = 'browser', // Default to browser TTS (free, no setup)
-    ttsLanguage = 'vi-VN', // Default to Vietnamese
+    ttsProvider = "browser", // Default to browser TTS (free, no setup)
+    ttsLanguage = "vi-VN", // Default to Vietnamese
     browserVoiceName, // Specific voice name to use
   } = options;
 
@@ -492,8 +492,8 @@ export function useVoiceConversation(
         console.log("[Browser TTS] Generating speech:", text);
 
         // Check if browser TTS is supported
-        if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-          throw new Error('Browser TTS not supported');
+        if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+          throw new Error("Browser TTS not supported");
         }
 
         // Stop any ongoing playback
@@ -538,7 +538,7 @@ export function useVoiceConversation(
 
         // Priority 2: Find voice by language
         if (!selectedVoice) {
-          const languageCode = ttsLanguage.split('-')[0] || ttsLanguage; // 'vi' from 'vi-VN'
+          const languageCode = ttsLanguage.split("-")[0] || ttsLanguage; // 'vi' from 'vi-VN'
           selectedVoice = voices.find(v => v.lang.startsWith(languageCode));
         }
 
@@ -573,7 +573,7 @@ export function useVoiceConversation(
           scheduleRestart(800);
         };
 
-        utterance.onerror = (event) => {
+        utterance.onerror = event => {
           console.error("[Browser TTS] Error:", event.error);
           setIsSpeaking(false);
           throw new Error(`Browser TTS error: ${event.error}`);
@@ -582,7 +582,7 @@ export function useVoiceConversation(
         // Speak
         window.speechSynthesis.speak(utterance);
 
-        return 'browser-tts'; // Return identifier instead of URL
+        return "browser-tts"; // Return identifier instead of URL
       } catch (err) {
         console.error("Browser TTS error:", err);
         setIsSpeaking(false);
@@ -601,7 +601,7 @@ export function useVoiceConversation(
         console.log(`[TTS] Using provider: ${ttsProvider}`);
 
         // Route to correct TTS provider
-        if (ttsProvider === 'browser') {
+        if (ttsProvider === "browser") {
           await generateAndPlayAudioBrowser(text);
         } else {
           await generateAndPlayAudio(text);

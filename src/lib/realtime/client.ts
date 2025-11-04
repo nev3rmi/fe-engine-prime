@@ -1,5 +1,5 @@
-import { getSession } from 'next-auth/react';
-import { io } from 'socket.io-client';
+import { getSession } from "next-auth/react";
+import { io } from "socket.io-client";
 
 import type {
   ServerToClientEvents,
@@ -7,15 +7,13 @@ import type {
   AuthenticatedUser,
   RealtimeConfig,
   PerformanceMetrics,
-} from '@/types/realtime';
+} from "@/types/realtime";
 
-import type { Socket } from 'socket.io-client';
-
-
+import type { Socket } from "socket.io-client";
 
 // Default configuration
 const DEFAULT_CONFIG: RealtimeConfig = {
-  serverUrl: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+  serverUrl: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
   autoConnect: true,
   reconnectAttempts: 5,
   reconnectDelay: 1000,
@@ -23,7 +21,7 @@ const DEFAULT_CONFIG: RealtimeConfig = {
   presenceUpdateInterval: 30000,
   messageHistoryLimit: 100,
   notificationRetentionDays: 7,
-  enableDebugLogs: process.env.NODE_ENV === 'development',
+  enableDebugLogs: process.env.NODE_ENV === "development",
 };
 
 // Socket instance
@@ -54,22 +52,25 @@ let currentUser: AuthenticatedUser | null = null;
 export const initializeRealtimeConfig = (customConfig?: Partial<RealtimeConfig>) => {
   config = { ...DEFAULT_CONFIG, ...customConfig };
   if (config.enableDebugLogs) {
-    console.log('Realtime config initialized:', config);
+    console.log("Realtime config initialized:", config);
   }
 };
 
 /**
  * Create and configure Socket.io client connection
  */
-export const createSocketConnection = async (): Promise<Socket<ServerToClientEvents, ClientToServerEvents> | null> => {
+export const createSocketConnection = async (): Promise<Socket<
+  ServerToClientEvents,
+  ClientToServerEvents
+> | null> => {
   try {
     // First, initialize the Socket.io server
-    await fetch('/api/socket', { method: 'POST' });
+    await fetch("/api/socket", { method: "POST" });
 
     // Get current session for authentication
     const session = await getSession();
     if (!session?.user) {
-      console.error('No active session found');
+      console.error("No active session found");
       return null;
     }
 
@@ -84,16 +85,16 @@ export const createSocketConnection = async (): Promise<Socket<ServerToClientEve
       reconnectionDelay: config.reconnectDelay,
       timeout: 20000,
       forceNew: false,
-      transports: ['websocket', 'polling'],
+      transports: ["websocket", "polling"],
     });
 
     // Performance tracking
     connectionStartTime = new Date();
 
     // Connection event handlers
-    socket.on('connect', () => {
+    socket.on("connect", () => {
       if (config.enableDebugLogs) {
-        console.log('Socket connected:', socket.id);
+        console.log("Socket connected:", socket.id);
       }
 
       metrics.lastPing = new Date();
@@ -102,53 +103,57 @@ export const createSocketConnection = async (): Promise<Socket<ServerToClientEve
       }
 
       // Authenticate with server
-      socket.emit('auth:authenticate', session.user?.id || '', (success: boolean, user?: AuthenticatedUser) => {
-        if (success && user) {
-          isAuthenticated = true;
-          currentUser = user;
-          if (config.enableDebugLogs) {
-            console.log('Socket authenticated for user:', user.name);
+      socket.emit(
+        "auth:authenticate",
+        session.user?.id || "",
+        (success: boolean, user?: AuthenticatedUser) => {
+          if (success && user) {
+            isAuthenticated = true;
+            currentUser = user;
+            if (config.enableDebugLogs) {
+              console.log("Socket authenticated for user:", user.name);
+            }
+          } else {
+            console.error("Socket authentication failed");
+            isAuthenticated = false;
+            currentUser = null;
           }
-        } else {
-          console.error('Socket authentication failed');
-          isAuthenticated = false;
-          currentUser = null;
         }
-      });
+      );
     });
 
-    socket.on('disconnect', (reason) => {
+    socket.on("disconnect", reason => {
       if (config.enableDebugLogs) {
-        console.log('Socket disconnected:', reason);
+        console.log("Socket disconnected:", reason);
       }
       isAuthenticated = false;
       currentUser = null;
     });
 
-    socket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
+    socket.on("connect_error", error => {
+      console.error("Socket connection error:", error);
       metrics.errors++;
     });
 
-    socket.on('reconnect', (attemptNumber) => {
+    socket.on("reconnect", attemptNumber => {
       if (config.enableDebugLogs) {
-        console.log('Socket reconnected after', attemptNumber, 'attempts');
+        console.log("Socket reconnected after", attemptNumber, "attempts");
       }
       metrics.reconnects++;
     });
 
-    socket.on('reconnect_error', (error) => {
-      console.error('Socket reconnection error:', error);
+    socket.on("reconnect_error", error => {
+      console.error("Socket reconnection error:", error);
       metrics.errors++;
     });
 
-    socket.on('reconnect_failed', () => {
-      console.error('Socket reconnection failed after maximum attempts');
+    socket.on("reconnect_failed", () => {
+      console.error("Socket reconnection failed after maximum attempts");
       metrics.errors++;
     });
 
     // Performance monitoring
-    socket.on('pong', (latency) => {
+    socket.on("pong", latency => {
       metrics.latency = latency;
       metrics.lastPing = new Date();
       if (connectionStartTime) {
@@ -170,9 +175,8 @@ export const createSocketConnection = async (): Promise<Socket<ServerToClientEve
 
     socketInstance = socket;
     return socket;
-
   } catch (error) {
-    console.error('Failed to create socket connection:', error);
+    console.error("Failed to create socket connection:", error);
     metrics.errors++;
     return null;
   }
@@ -200,7 +204,7 @@ export const connectSocket = async (): Promise<boolean> => {
 
     return socketInstance?.connected || false;
   } catch (error) {
-    console.error('Failed to connect socket:', error);
+    console.error("Failed to connect socket:", error);
     return false;
   }
 };
@@ -220,7 +224,7 @@ export const disconnectSocket = (): void => {
  * Check if socket is connected and authenticated
  */
 export const isSocketConnected = (): boolean => {
-  return socketInstance?.connected && isAuthenticated || false;
+  return (socketInstance?.connected && isAuthenticated) || false;
 };
 
 /**
@@ -260,15 +264,15 @@ export const resetPerformanceMetrics = (): void => {
  * Join a room/channel
  */
 export const joinRoom = async (roomId: string): Promise<boolean> => {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     if (!socketInstance || !isAuthenticated) {
       resolve(false);
       return;
     }
 
-    socketInstance.emit('room:join', roomId, (success: boolean) => {
+    socketInstance.emit("room:join", roomId, (success: boolean) => {
       if (config.enableDebugLogs) {
-        console.log('Join room result:', roomId, success);
+        console.log("Join room result:", roomId, success);
       }
       resolve(success);
     });
@@ -279,15 +283,15 @@ export const joinRoom = async (roomId: string): Promise<boolean> => {
  * Leave a room/channel
  */
 export const leaveRoom = async (roomId: string): Promise<boolean> => {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     if (!socketInstance || !isAuthenticated) {
       resolve(false);
       return;
     }
 
-    socketInstance.emit('room:leave', roomId, (success: boolean) => {
+    socketInstance.emit("room:leave", roomId, (success: boolean) => {
       if (config.enableDebugLogs) {
-        console.log('Leave room result:', roomId, success);
+        console.log("Leave room result:", roomId, success);
       }
       resolve(success);
     });
@@ -299,9 +303,9 @@ export const leaveRoom = async (roomId: string): Promise<boolean> => {
  */
 export const subscribeToData = (dataType: string, filters?: any): void => {
   if (socketInstance && isAuthenticated) {
-    socketInstance.emit('data:subscribe', dataType, filters);
+    socketInstance.emit("data:subscribe", dataType, filters);
     if (config.enableDebugLogs) {
-      console.log('Subscribed to data:', dataType, filters);
+      console.log("Subscribed to data:", dataType, filters);
     }
   }
 };
@@ -311,9 +315,9 @@ export const subscribeToData = (dataType: string, filters?: any): void => {
  */
 export const unsubscribeFromData = (dataType: string): void => {
   if (socketInstance && isAuthenticated) {
-    socketInstance.emit('data:unsubscribe', dataType);
+    socketInstance.emit("data:unsubscribe", dataType);
     if (config.enableDebugLogs) {
-      console.log('Unsubscribed from data:', dataType);
+      console.log("Unsubscribed from data:", dataType);
     }
   }
 };
@@ -323,9 +327,9 @@ export const unsubscribeFromData = (dataType: string): void => {
  */
 export const subscribeToWidget = (widgetId: string): void => {
   if (socketInstance && isAuthenticated) {
-    socketInstance.emit('widget:subscribe', widgetId);
+    socketInstance.emit("widget:subscribe", widgetId);
     if (config.enableDebugLogs) {
-      console.log('Subscribed to widget:', widgetId);
+      console.log("Subscribed to widget:", widgetId);
     }
   }
 };
@@ -335,9 +339,9 @@ export const subscribeToWidget = (widgetId: string): void => {
  */
 export const unsubscribeFromWidget = (widgetId: string): void => {
   if (socketInstance && isAuthenticated) {
-    socketInstance.emit('widget:unsubscribe', widgetId);
+    socketInstance.emit("widget:unsubscribe", widgetId);
     if (config.enableDebugLogs) {
-      console.log('Unsubscribed from widget:', widgetId);
+      console.log("Unsubscribed from widget:", widgetId);
     }
   }
 };
@@ -373,6 +377,6 @@ export const cleanup = (): void => {
 };
 
 // Auto-cleanup on page unload
-if (typeof window !== 'undefined') {
-  window.addEventListener('beforeunload', cleanup);
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeunload", cleanup);
 }

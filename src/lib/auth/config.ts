@@ -3,12 +3,11 @@ import Discord from "next-auth/providers/discord";
 import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 
-
 import { getRolePermissions } from "@/lib/auth/permissions";
 import { getUserById, createUser, updateUser, getUserByEmail } from "@/lib/auth/user-service";
 import type { UserRole, Permission } from "@/types/auth";
 
-import type { NextAuthConfig , Session, User as NextAuthUser } from "next-auth";
+import type { NextAuthConfig, Session, User as NextAuthUser } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 
 export const config = {
@@ -22,7 +21,7 @@ export const config = {
       name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
@@ -48,7 +47,7 @@ export const config = {
           if (!user) {
             // Create user if doesn't exist
             const newUserId = Date.now().toString();
-            const usernameBase = email.split('@')[0] || 'user';
+            const usernameBase = email.split("@")[0] || "user";
             await createUser({
               id: newUserId,
               email,
@@ -78,7 +77,7 @@ export const config = {
         }
 
         return null;
-      }
+      },
     }),
     GitHub({
       clientId: process.env.GITHUB_CLIENT_ID!,
@@ -194,9 +193,13 @@ export const config = {
 
     async redirect({ url, baseUrl }) {
       // Allows relative callback URLs
-      if (url.startsWith("/")) {return `${baseUrl}${url}`;}
+      if (url.startsWith("/")) {
+        return `${baseUrl}${url}`;
+      }
       // Allows callback URLs on the same origin
-      else if (new URL(url).origin === baseUrl) {return url;}
+      else if (new URL(url).origin === baseUrl) {
+        return url;
+      }
       return baseUrl;
     },
   },

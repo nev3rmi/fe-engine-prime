@@ -4,7 +4,7 @@
  * Supports Vietnamese (vi-VN) and other languages
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from "react";
 
 export interface BrowserTTSOptions {
   language?: string; // BCP-47 language code (e.g., 'vi-VN', 'en-US')
@@ -33,14 +33,13 @@ export interface BrowserTTSActions {
   setVoice: (voiceName: string) => void;
 }
 
-const isWebSpeechSupported =
-  typeof window !== 'undefined' && 'speechSynthesis' in window;
+const isWebSpeechSupported = typeof window !== "undefined" && "speechSynthesis" in window;
 
 export function useBrowserTTS(
   options: BrowserTTSOptions = {}
 ): BrowserTTSState & BrowserTTSActions {
   const {
-    language = 'vi-VN',
+    language = "vi-VN",
     voiceName,
     rate = 1,
     pitch = 1,
@@ -61,7 +60,9 @@ export function useBrowserTTS(
 
   // Load available voices
   useEffect(() => {
-    if (!isWebSpeechSupported) {return;}
+    if (!isWebSpeechSupported) {
+      return;
+    }
 
     const loadVoices = () => {
       const voices = window.speechSynthesis.getVoices();
@@ -73,33 +74,34 @@ export function useBrowserTTS(
 
         if (voiceName) {
           // Try to find exact voice name match
-          voice = voices.find((v) => v.name === voiceName);
+          voice = voices.find(v => v.name === voiceName);
         }
 
         if (!voice) {
-          const languageCode = language.split('-')[0];
+          const languageCode = language.split("-")[0];
 
           // For Vietnamese, prefer HoaiMy (female) voice
-          if (languageCode === 'vi') {
+          if (languageCode === "vi") {
             // Try to find HoaiMy specifically
-            voice = voices.find((v) =>
-              v.lang.startsWith('vi') &&
-              (v.name.includes('HoaiMy') || v.name.includes('Hoài My'))
+            voice = voices.find(
+              v =>
+                v.lang.startsWith("vi") && (v.name.includes("HoaiMy") || v.name.includes("Hoài My"))
             );
 
             // If HoaiMy not found, try any female Vietnamese voice
             if (!voice) {
-              voice = voices.find((v) =>
-                v.lang.startsWith('vi') &&
-                (v.name.includes('Female') || v.name.includes('Linh') || v.name.includes('My'))
+              voice = voices.find(
+                v =>
+                  v.lang.startsWith("vi") &&
+                  (v.name.includes("Female") || v.name.includes("Linh") || v.name.includes("My"))
               );
             }
           }
 
           // Fallback: find any voice by language
           if (!voice) {
-            const languageCode = language.split('-')[0] || language;
-            voice = voices.find((v) => v.lang.startsWith(languageCode));
+            const languageCode = language.split("-")[0] || language;
+            voice = voices.find(v => v.lang.startsWith(languageCode));
           }
         }
 
@@ -110,11 +112,12 @@ export function useBrowserTTS(
 
         setSelectedVoice(voice || null);
 
-        console.log('[BrowserTTS] Available voices:', voices.length);
-        console.log('[BrowserTTS] Vietnamese voices:',
-          voices.filter((v) => v.lang.startsWith('vi')).map((v) => v.name)
+        console.log("[BrowserTTS] Available voices:", voices.length);
+        console.log(
+          "[BrowserTTS] Vietnamese voices:",
+          voices.filter(v => v.lang.startsWith("vi")).map(v => v.name)
         );
-        console.log('[BrowserTTS] Selected voice:', voice?.name, voice?.lang);
+        console.log("[BrowserTTS] Selected voice:", voice?.name, voice?.lang);
       }
     };
 
@@ -137,7 +140,7 @@ export function useBrowserTTS(
   const speak = useCallback(
     (text: string) => {
       if (!isWebSpeechSupported) {
-        onError?.(new Error('Browser TTS not supported'));
+        onError?.(new Error("Browser TTS not supported"));
         return;
       }
 
@@ -157,33 +160,33 @@ export function useBrowserTTS(
 
       // Event handlers
       utterance.onstart = () => {
-        console.log('[BrowserTTS] Started speaking:', text.substring(0, 50));
+        console.log("[BrowserTTS] Started speaking:", text.substring(0, 50));
         setIsSpeaking(true);
         setIsPaused(false);
         onStart?.();
       };
 
       utterance.onend = () => {
-        console.log('[BrowserTTS] Finished speaking');
+        console.log("[BrowserTTS] Finished speaking");
         setIsSpeaking(false);
         setIsPaused(false);
         onEnd?.();
       };
 
-      utterance.onerror = (event) => {
-        console.error('[BrowserTTS] Error:', event.error);
+      utterance.onerror = event => {
+        console.error("[BrowserTTS] Error:", event.error);
         setIsSpeaking(false);
         setIsPaused(false);
         onError?.(new Error(`Speech synthesis error: ${event.error}`));
       };
 
       utterance.onpause = () => {
-        console.log('[BrowserTTS] Paused');
+        console.log("[BrowserTTS] Paused");
         setIsPaused(true);
       };
 
       utterance.onresume = () => {
-        console.log('[BrowserTTS] Resumed');
+        console.log("[BrowserTTS] Resumed");
         setIsPaused(false);
       };
 
@@ -221,10 +224,10 @@ export function useBrowserTTS(
   // Set voice by name
   const setVoice = useCallback(
     (name: string) => {
-      const voice = availableVoices.find((v) => v.name === name);
+      const voice = availableVoices.find(v => v.name === name);
       if (voice) {
         setSelectedVoice(voice);
-        console.log('[BrowserTTS] Voice changed to:', voice.name, voice.lang);
+        console.log("[BrowserTTS] Voice changed to:", voice.name, voice.lang);
       }
     },
     [availableVoices]

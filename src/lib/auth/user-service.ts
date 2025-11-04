@@ -1,4 +1,4 @@
-import type { User, CreateUserData, UpdateUserData} from "@/types/auth";
+import type { User, CreateUserData, UpdateUserData } from "@/types/auth";
 import { UserRole } from "@/types/auth";
 
 // Mock database - replace with actual database implementation

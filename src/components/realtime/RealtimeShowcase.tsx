@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 import {
   Activity,
@@ -16,28 +16,36 @@ import {
   Shield,
   Database,
   Monitor,
-} from 'lucide-react';
+} from "lucide-react";
 
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Import realtime components
-import { useNotifications, useNotificationSender } from '@/lib/hooks/use-notifications';
-import { usePresence } from '@/lib/hooks/use-presence';
-import { useRealtime, useConnectionStatus } from '@/lib/hooks/use-realtime';
-import { getRealtimeSystemHealth } from '@/lib/realtime';
+import { useNotifications, useNotificationSender } from "@/lib/hooks/use-notifications";
+import { usePresence } from "@/lib/hooks/use-presence";
+import { useRealtime, useConnectionStatus } from "@/lib/hooks/use-realtime";
+import { getRealtimeSystemHealth } from "@/lib/realtime";
 
-import { Chat } from './Chat';
-import { MetricWidget, ActivityWidget, ChartWidget, WidgetGrid } from './DashboardWidget';
-import { NotificationBell, NotificationPanel, NotificationPermissionBanner } from './NotificationSystem';
-import { PresenceIndicator, OnlineUsersList, PresenceCard, PresenceCounter } from './PresenceIndicator';
+import { Chat } from "./Chat";
+import { MetricWidget, ActivityWidget, ChartWidget, WidgetGrid } from "./DashboardWidget";
+import {
+  NotificationBell,
+  NotificationPanel,
+  NotificationPermissionBanner,
+} from "./NotificationSystem";
+import {
+  PresenceIndicator,
+  OnlineUsersList,
+  PresenceCard,
+  PresenceCounter,
+} from "./PresenceIndicator";
 
 // Import hooks
-
 
 /**
  * Connection status indicator
@@ -49,27 +57,30 @@ const ConnectionStatus: React.FC = () => {
   const getStatusInfo = () => {
     if (connectionError) {
       return {
-        icon: <AlertCircle className="w-4 h-4 text-red-500" />,
-        text: 'Connection Error',
-        variant: 'destructive' as const,
+        icon: <AlertCircle className="h-4 w-4 text-red-500" />,
+        text: "Connection Error",
+        variant: "destructive" as const,
         description: connectionError,
       };
     }
 
     if (!isConnected) {
       return {
-        icon: <WifiOff className="w-4 h-4 text-gray-500" />,
-        text: 'Disconnected',
-        variant: 'secondary' as const,
-        description: reconnectAttempts > 0 ? `Reconnecting... (attempt ${reconnectAttempts})` : 'Not connected',
+        icon: <WifiOff className="h-4 w-4 text-gray-500" />,
+        text: "Disconnected",
+        variant: "secondary" as const,
+        description:
+          reconnectAttempts > 0
+            ? `Reconnecting... (attempt ${reconnectAttempts})`
+            : "Not connected",
       };
     }
 
     return {
-      icon: <Wifi className="w-4 h-4 text-green-500" />,
-      text: 'Connected',
-      variant: 'default' as const,
-      description: 'Connected successfully',
+      icon: <Wifi className="h-4 w-4 text-green-500" />,
+      text: "Connected",
+      variant: "default" as const,
+      description: "Connected successfully",
     };
   };
 
@@ -79,7 +90,7 @@ const ConnectionStatus: React.FC = () => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
-          <Shield className="w-5 h-5" />
+          <Shield className="h-5 w-5" />
           <span>Connection Status</span>
         </CardTitle>
       </CardHeader>
@@ -93,14 +104,14 @@ const ConnectionStatus: React.FC = () => {
             <Badge variant={status.variant}>{status.text}</Badge>
           </div>
 
-          <p className="text-sm text-muted-foreground">{status.description}</p>
+          <p className="text-muted-foreground text-sm">{status.description}</p>
 
           {connectionStatus && (
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span>Authenticated:</span>
-                <Badge variant={connectionStatus.isAuthenticated ? 'default' : 'secondary'}>
-                  {connectionStatus.isAuthenticated ? 'Yes' : 'No'}
+                <Badge variant={connectionStatus.isAuthenticated ? "default" : "secondary"}>
+                  {connectionStatus.isAuthenticated ? "Yes" : "No"}
                 </Badge>
               </div>
               <div className="flex justify-between">
@@ -134,7 +145,7 @@ const SystemHealthMonitor: React.FC = () => {
       const health = getRealtimeSystemHealth();
       setHealthData(health);
     } catch (error) {
-      console.error('Failed to get health data:', error);
+      console.error("Failed to get health data:", error);
     }
     setIsLoading(false);
   };
@@ -150,16 +161,11 @@ const SystemHealthMonitor: React.FC = () => {
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Monitor className="w-5 h-5" />
+            <Monitor className="h-5 w-5" />
             <span>System Health</span>
           </div>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={refreshHealth}
-            disabled={isLoading}
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          <Button size="sm" variant="ghost" onClick={refreshHealth} disabled={isLoading}>
+            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
         </CardTitle>
       </CardHeader>
@@ -169,11 +175,8 @@ const SystemHealthMonitor: React.FC = () => {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="font-medium">Connection:</span>
-                <Badge
-                  variant={healthData.isConnected ? 'default' : 'secondary'}
-                  className="ml-2"
-                >
-                  {healthData.isConnected ? 'Connected' : 'Disconnected'}
+                <Badge variant={healthData.isConnected ? "default" : "secondary"} className="ml-2">
+                  {healthData.isConnected ? "Connected" : "Disconnected"}
                 </Badge>
               </div>
               <div>
@@ -188,9 +191,11 @@ const SystemHealthMonitor: React.FC = () => {
                 <span className="font-medium">Quality:</span>
                 <Badge
                   variant={
-                    healthData.performance.connectionQuality === 'excellent' ? 'default' :
-                    healthData.performance.connectionQuality === 'good' ? 'secondary' :
-                    'outline'
+                    healthData.performance.connectionQuality === "excellent"
+                      ? "default"
+                      : healthData.performance.connectionQuality === "good"
+                        ? "secondary"
+                        : "outline"
                   }
                   className="ml-2"
                 >
@@ -209,7 +214,7 @@ const SystemHealthMonitor: React.FC = () => {
 
             <Separator />
 
-            <div className="space-y-2 text-xs text-muted-foreground">
+            <div className="text-muted-foreground space-y-2 text-xs">
               <div className="flex justify-between">
                 <span>Packets Sent:</span>
                 <span>{healthData.metrics.packetsSent}</span>
@@ -225,9 +230,9 @@ const SystemHealthMonitor: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="text-center py-4">
-            <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Loading health data...</p>
+          <div className="py-4 text-center">
+            <RefreshCw className="text-muted-foreground mx-auto mb-2 h-6 w-6 animate-spin" />
+            <p className="text-muted-foreground text-sm">Loading health data...</p>
           </div>
         )}
       </CardContent>
@@ -244,32 +249,32 @@ const NotificationTester: React.FC = () => {
 
   const testNotifications = [
     {
-      type: 'success' as const,
-      title: 'Success Test',
-      message: 'This is a success notification test',
-      priority: 'normal' as const,
+      type: "success" as const,
+      title: "Success Test",
+      message: "This is a success notification test",
+      priority: "normal" as const,
     },
     {
-      type: 'warning' as const,
-      title: 'Warning Test',
-      message: 'This is a warning notification test',
-      priority: 'high' as const,
+      type: "warning" as const,
+      title: "Warning Test",
+      message: "This is a warning notification test",
+      priority: "high" as const,
     },
     {
-      type: 'error' as const,
-      title: 'Error Test',
-      message: 'This is an error notification test',
-      priority: 'urgent' as const,
+      type: "error" as const,
+      title: "Error Test",
+      message: "This is an error notification test",
+      priority: "urgent" as const,
     },
     {
-      type: 'system' as const,
-      title: 'System Update',
-      message: 'System has been updated successfully',
-      priority: 'low' as const,
+      type: "system" as const,
+      title: "System Update",
+      message: "System has been updated successfully",
+      priority: "low" as const,
     },
   ];
 
-  const sendTestNotification = async (notification: typeof testNotifications[0]) => {
+  const sendTestNotification = async (notification: (typeof testNotifications)[0]) => {
     setIsSending(true);
     try {
       await sendSystemNotification(
@@ -279,7 +284,7 @@ const NotificationTester: React.FC = () => {
         notification.priority
       );
     } catch (error) {
-      console.error('Failed to send notification:', error);
+      console.error("Failed to send notification:", error);
     }
     setIsSending(false);
   };
@@ -288,7 +293,7 @@ const NotificationTester: React.FC = () => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
-          <Zap className="w-5 h-5" />
+          <Zap className="h-5 w-5" />
           <span>Test Notifications</span>
         </CardTitle>
       </CardHeader>
@@ -324,9 +329,10 @@ export const RealtimeShowcase: React.FC = () => {
     return (
       <div className="container mx-auto p-6">
         <Alert>
-          <AlertCircle className="w-4 h-4" />
+          <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Real-time features require an active connection. Please ensure you're authenticated and the server is running.
+            Real-time features require an active connection. Please ensure you're authenticated and
+            the server is running.
           </AlertDescription>
         </Alert>
       </div>
@@ -334,12 +340,13 @@ export const RealtimeShowcase: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto space-y-6 p-6">
       {/* Header */}
       <div className="space-y-2">
         <h1 className="text-3xl font-bold">Real-time Infrastructure Showcase</h1>
         <p className="text-muted-foreground">
-          Comprehensive Socket.io 4.8+ system with authentication, presence, chat, data sync, and notifications
+          Comprehensive Socket.io 4.8+ system with authentication, presence, chat, data sync, and
+          notifications
         </p>
         <div className="flex items-center space-x-4">
           <PresenceCounter />
@@ -364,14 +371,14 @@ export const RealtimeShowcase: React.FC = () => {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             <ConnectionStatus />
             <SystemHealthMonitor />
             <PresenceCard />
           </div>
 
           <Alert>
-            <CheckCircle className="w-4 h-4" />
+            <CheckCircle className="h-4 w-4" />
             <AlertDescription>
               Real-time system is operational. All features are available and working correctly.
             </AlertDescription>
@@ -380,11 +387,11 @@ export const RealtimeShowcase: React.FC = () => {
 
         {/* Presence Tab */}
         <TabsContent value="presence" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <Users className="w-5 h-5" />
+                  <Users className="h-5 w-5" />
                   <span>Online Users ({onlineUsers.length})</span>
                 </CardTitle>
               </CardHeader>
@@ -422,7 +429,7 @@ export const RealtimeShowcase: React.FC = () => {
             maxHeight="600px"
             showHeader={true}
             showUserList={true}
-            className="max-w-4xl mx-auto"
+            className="mx-auto max-w-4xl"
           />
         </TabsContent>
 
@@ -432,7 +439,7 @@ export const RealtimeShowcase: React.FC = () => {
             <MetricWidget
               widgetId="user_count"
               title="Active Users"
-              icon={<Users className="w-4 h-4" />}
+              icon={<Users className="h-4 w-4" />}
               format="number"
               trend="up"
               showProgress={false}
@@ -441,7 +448,7 @@ export const RealtimeShowcase: React.FC = () => {
             <MetricWidget
               widgetId="message_count"
               title="Messages Today"
-              icon={<MessageSquare className="w-4 h-4" />}
+              icon={<MessageSquare className="h-4 w-4" />}
               format="number"
               showProgress={false}
             />
@@ -449,7 +456,7 @@ export const RealtimeShowcase: React.FC = () => {
             <MetricWidget
               widgetId="system_load"
               title="System Load"
-              icon={<Activity className="w-4 h-4" />}
+              icon={<Activity className="h-4 w-4" />}
               format="percentage"
               target={100}
               showProgress={true}
@@ -480,13 +487,9 @@ export const RealtimeShowcase: React.FC = () => {
 
         {/* Notifications Tab */}
         <TabsContent value="notifications" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2">
-              <NotificationPanel
-                maxHeight="600px"
-                showFilters={true}
-                showSettings={true}
-              />
+              <NotificationPanel maxHeight="600px" showFilters={true} showSettings={true} />
             </div>
 
             <div className="space-y-4">
@@ -495,7 +498,7 @@ export const RealtimeShowcase: React.FC = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <Bell className="w-5 h-5" />
+                    <Bell className="h-5 w-5" />
                     <span>Stats</span>
                   </CardTitle>
                 </CardHeader>
@@ -514,48 +517,48 @@ export const RealtimeShowcase: React.FC = () => {
 
         {/* System Tab */}
         <TabsContent value="system" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <SystemHealthMonitor />
 
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <Database className="w-5 h-5" />
+                  <Database className="h-5 w-5" />
                   <span>Features Implemented</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <CheckCircle className="h-4 w-4 text-green-500" />
                     <span>Socket.io 4.8+ Server Configuration</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <CheckCircle className="h-4 w-4 text-green-500" />
                     <span>JWT Authentication Integration</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <CheckCircle className="h-4 w-4 text-green-500" />
                     <span>Real-time Presence System</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <CheckCircle className="h-4 w-4 text-green-500" />
                     <span>Chat/Messaging System</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <CheckCircle className="h-4 w-4 text-green-500" />
                     <span>Data Synchronization</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <CheckCircle className="h-4 w-4 text-green-500" />
                     <span>Push Notifications</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <CheckCircle className="h-4 w-4 text-green-500" />
                     <span>Performance Optimizations</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <CheckCircle className="h-4 w-4 text-green-500" />
                     <span>ShadCN/UI Components</span>
                   </div>
                 </div>
@@ -564,9 +567,10 @@ export const RealtimeShowcase: React.FC = () => {
           </div>
 
           <Alert>
-            <CheckCircle className="w-4 h-4" />
+            <CheckCircle className="h-4 w-4" />
             <AlertDescription>
-              <strong>Mission Complete!</strong> All real-time infrastructure features have been successfully implemented and are ready for production use.
+              <strong>Mission Complete!</strong> All real-time infrastructure features have been
+              successfully implemented and are ready for production use.
             </AlertDescription>
           </Alert>
         </TabsContent>

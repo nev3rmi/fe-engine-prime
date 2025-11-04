@@ -1,4 +1,4 @@
-import { Permission, UserRole } from "@/types/auth"
+import { Permission, UserRole } from "@/types/auth";
 
 /**
  * Authentication configuration constants
@@ -31,7 +31,7 @@ export const AUTH_CONFIG = {
     UNAUTHORIZED: "/login",
     FORBIDDEN: "/dashboard",
   },
-} as const
+} as const;
 
 /**
  * Route patterns for middleware
@@ -50,35 +50,17 @@ export const ROUTE_PATTERNS = {
   ],
 
   // Protected routes (authentication required)
-  PROTECTED: [
-    "/dashboard",
-    "/profile",
-    "/settings",
-  ],
+  PROTECTED: ["/dashboard", "/profile", "/settings"],
 
   // Admin only routes
-  ADMIN: [
-    "/admin",
-    "/dashboard/users",
-    "/dashboard/settings",
-    "/api/admin/.*",
-  ],
+  ADMIN: ["/admin", "/dashboard/users", "/dashboard/settings", "/api/admin/.*"],
 
   // Editor or higher routes
-  EDITOR: [
-    "/editor",
-    "/dashboard/content",
-    "/api/content/.*",
-  ],
+  EDITOR: ["/editor", "/dashboard/content", "/api/content/.*"],
 
   // Static files and API auth (skip middleware)
-  SKIP: [
-    "/_next",
-    "/favicon.ico",
-    "/api/auth",
-    "/api/health",
-  ],
-} as const
+  SKIP: ["/_next", "/favicon.ico", "/api/auth", "/api/health"],
+} as const;
 
 /**
  * Permission categories for UI organization
@@ -106,22 +88,15 @@ export const PERMISSION_CATEGORIES = {
     Permission.MANAGE_INTEGRATIONS,
   ],
 
-  DASHBOARD_ACCESS: [
-    Permission.VIEW_DASHBOARD,
-    Permission.VIEW_ANALYTICS,
-    Permission.EXPORT_DATA,
-  ],
+  DASHBOARD_ACCESS: [Permission.VIEW_DASHBOARD, Permission.VIEW_ANALYTICS, Permission.EXPORT_DATA],
 
   REALTIME_COMMUNICATION: [
     Permission.JOIN_REALTIME_CHANNELS,
     Permission.MODERATE_REALTIME_CHANNELS,
   ],
 
-  API_ACCESS: [
-    Permission.ACCESS_API,
-    Permission.ADMIN_API_ACCESS,
-  ],
-} as const
+  API_ACCESS: [Permission.ACCESS_API, Permission.ADMIN_API_ACCESS],
+} as const;
 
 /**
  * Role descriptions for UI display
@@ -150,7 +125,7 @@ export const ROLE_DESCRIPTIONS = {
     color: "green",
     badge: "USER",
   },
-} as const
+} as const;
 
 /**
  * Permission descriptions for UI display
@@ -187,7 +162,7 @@ export const PERMISSION_DESCRIPTIONS = {
   // API Access
   [Permission.ACCESS_API]: "Make API calls and access endpoints",
   [Permission.ADMIN_API_ACCESS]: "Access administrative API endpoints",
-} as const
+} as const;
 
 /**
  * OAuth provider configurations
@@ -213,7 +188,7 @@ export const OAUTH_PROVIDERS = {
     icon: "discord",
     color: "#7289DA",
   },
-} as const
+} as const;
 
 /**
  * Error messages for authentication
@@ -228,7 +203,7 @@ export const AUTH_ERRORS = {
   PROVIDER_ERROR: "Authentication provider error",
   NETWORK_ERROR: "Network error. Please try again",
   UNKNOWN_ERROR: "An unexpected error occurred",
-} as const
+} as const;
 
 /**
  * Session refresh configuration
@@ -237,4 +212,4 @@ export const SESSION_REFRESH = {
   INTERVAL: 5 * 60 * 1000, // 5 minutes
   ON_WINDOW_FOCUS: true,
   ON_MOUNT: true,
-} as const
+} as const;

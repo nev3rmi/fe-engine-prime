@@ -1,10 +1,25 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 /**
  * Component Showcase - Demonstrates all core ShadCN/UI components
@@ -12,11 +27,12 @@ import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, Tabl
  */
 export function ComponentShowcase() {
   return (
-    <div className="p-8 space-y-8">
+    <div className="space-y-8 p-8">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold">ShadCN/UI Component Showcase</h1>
         <p className="text-muted-foreground">
-          Complete implementation of core ShadCN components with official patterns and strict MCP compliance.
+          Complete implementation of core ShadCN components with official patterns and strict MCP
+          compliance.
         </p>
       </div>
 
@@ -60,16 +76,16 @@ export function ComponentShowcase() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Sample Card</CardTitle>
                 <CardDescription>Card with header and content</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  This demonstrates the official ShadCN Card component composition pattern
-                  using CardHeader, CardContent structure.
+                <p className="text-muted-foreground text-sm">
+                  This demonstrates the official ShadCN Card component composition pattern using
+                  CardHeader, CardContent structure.
                 </p>
               </CardContent>
             </Card>
@@ -79,7 +95,7 @@ export function ComponentShowcase() {
                 <CardDescription>Complete card composition</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   This card includes all three composition elements following ShadCN patterns.
                 </p>
               </CardContent>
@@ -115,7 +131,9 @@ export function ComponentShowcase() {
             </div>
             <div className="flex gap-2">
               <Button type="submit">Submit</Button>
-              <Button type="button" variant="outline">Cancel</Button>
+              <Button type="button" variant="outline">
+                Cancel
+              </Button>
             </div>
           </form>
         </CardContent>
@@ -146,7 +164,9 @@ export function ComponentShowcase() {
                 <TableCell>John Doe</TableCell>
                 <TableCell>Developer</TableCell>
                 <TableCell className="text-right">
-                  <Button variant="outline" size="sm">Active</Button>
+                  <Button variant="outline" size="sm">
+                    Active
+                  </Button>
                 </TableCell>
               </TableRow>
               <TableRow>
@@ -154,7 +174,9 @@ export function ComponentShowcase() {
                 <TableCell>Jane Smith</TableCell>
                 <TableCell>Designer</TableCell>
                 <TableCell className="text-right">
-                  <Button variant="outline" size="sm">Active</Button>
+                  <Button variant="outline" size="sm">
+                    Active
+                  </Button>
                 </TableCell>
               </TableRow>
               <TableRow>
@@ -162,7 +184,9 @@ export function ComponentShowcase() {
                 <TableCell>Bob Johnson</TableCell>
                 <TableCell>Manager</TableCell>
                 <TableCell className="text-right">
-                  <Button variant="secondary" size="sm">Inactive</Button>
+                  <Button variant="secondary" size="sm">
+                    Inactive
+                  </Button>
                 </TableCell>
               </TableRow>
             </TableBody>

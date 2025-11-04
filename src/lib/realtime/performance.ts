@@ -1,4 +1,4 @@
-import type { Socket } from 'socket.io-client';
+import type { Socket } from "socket.io-client";
 
 /**
  * Performance optimization utilities for Socket.io real-time features
@@ -15,7 +15,7 @@ class SocketConnectionPool {
   private static instance: SocketConnectionPool;
   private pools: Map<string, Socket[]> = new Map();
   private maxPoolSize = 5;
-  private currentPool = 'default';
+  private currentPool = "default";
 
   static getInstance(): SocketConnectionPool {
     if (!SocketConnectionPool.instance) {
@@ -28,7 +28,7 @@ class SocketConnectionPool {
     this.maxPoolSize = size;
   }
 
-  addSocket(socket: Socket, poolName = 'default'): void {
+  addSocket(socket: Socket, poolName = "default"): void {
     if (!this.pools.has(poolName)) {
       this.pools.set(poolName, []);
     }
@@ -39,7 +39,7 @@ class SocketConnectionPool {
     }
   }
 
-  removeSocket(socket: Socket, poolName = 'default'): void {
+  removeSocket(socket: Socket, poolName = "default"): void {
     const pool = this.pools.get(poolName);
     if (pool) {
       const index = pool.indexOf(socket);
@@ -49,12 +49,12 @@ class SocketConnectionPool {
     }
   }
 
-  getSocket(poolName = 'default'): Socket | null {
+  getSocket(poolName = "default"): Socket | null {
     const pool = this.pools.get(poolName);
-    return pool && pool.length > 0 ? (pool[0] || null) : null;
+    return pool && pool.length > 0 ? pool[0] || null : null;
   }
 
-  getPoolSize(poolName = 'default'): number {
+  getPoolSize(poolName = "default"): number {
     const pool = this.pools.get(poolName);
     return pool ? pool.length : 0;
   }
@@ -73,7 +73,9 @@ export const throttleEvent = <T extends any[]>(
   args: T,
   delay = 1000
 ): boolean => {
-  if (!socket) {return false;}
+  if (!socket) {
+    return false;
+  }
 
   const key = `${socket.id}_${eventName}`;
   const now = Date.now();
@@ -97,7 +99,9 @@ export const debounceEvent = <T extends any[]>(
   args: T,
   delay = 300
 ): void => {
-  if (!socket) {return;}
+  if (!socket) {
+    return;
+  }
 
   const key = `${socket.id}_${eventName}`;
 
@@ -129,7 +133,9 @@ export class EventBatcher {
   }
 
   add(eventName: string, data: any, maxBatchSize = 10, flushDelay = 100): void {
-    if (!this.socket) {return;}
+    if (!this.socket) {
+      return;
+    }
 
     if (!this.batches.has(eventName)) {
       this.batches.set(eventName, []);
@@ -191,10 +197,10 @@ export class ConnectionQualityMonitor {
   private pingHistory: number[] = [];
   private maxHistorySize = 10;
   private qualityThresholds = {
-    excellent: 50,   // < 50ms
-    good: 100,       // < 100ms
-    fair: 200,       // < 200ms
-    poor: 500,       // < 500ms
+    excellent: 50, // < 50ms
+    good: 100, // < 100ms
+    fair: 200, // < 200ms
+    poor: 500, // < 500ms
     // > 500ms = very poor
   };
 
@@ -204,10 +210,12 @@ export class ConnectionQualityMonitor {
   }
 
   private startMonitoring(): void {
-    if (!this.socket) {return;}
+    if (!this.socket) {
+      return;
+    }
 
     // Monitor ping/pong for latency
-    this.socket.on('pong', (latency: number) => {
+    this.socket.on("pong", (latency: number) => {
       this.pingHistory.push(latency);
 
       // Keep only recent history
@@ -220,13 +228,15 @@ export class ConnectionQualityMonitor {
     setInterval(() => {
       if (this.socket?.connected) {
         const start = Date.now();
-        this.socket.emit('ping', start);
+        this.socket.emit("ping", start);
       }
     }, 10000);
   }
 
   getAverageLatency(): number {
-    if (this.pingHistory.length === 0) {return 0;}
+    if (this.pingHistory.length === 0) {
+      return 0;
+    }
     return this.pingHistory.reduce((sum, ping) => sum + ping, 0) / this.pingHistory.length;
   }
 
@@ -234,25 +244,39 @@ export class ConnectionQualityMonitor {
     return this.pingHistory[this.pingHistory.length - 1] || 0;
   }
 
-  getConnectionQuality(): 'excellent' | 'good' | 'fair' | 'poor' | 'very poor' {
+  getConnectionQuality(): "excellent" | "good" | "fair" | "poor" | "very poor" {
     const avgLatency = this.getAverageLatency();
 
-    if (avgLatency < this.qualityThresholds.excellent) {return 'excellent';}
-    if (avgLatency < this.qualityThresholds.good) {return 'good';}
-    if (avgLatency < this.qualityThresholds.fair) {return 'fair';}
-    if (avgLatency < this.qualityThresholds.poor) {return 'poor';}
-    return 'very poor';
+    if (avgLatency < this.qualityThresholds.excellent) {
+      return "excellent";
+    }
+    if (avgLatency < this.qualityThresholds.good) {
+      return "good";
+    }
+    if (avgLatency < this.qualityThresholds.fair) {
+      return "fair";
+    }
+    if (avgLatency < this.qualityThresholds.poor) {
+      return "poor";
+    }
+    return "very poor";
   }
 
   getQualityScore(): number {
     const quality = this.getConnectionQuality();
     switch (quality) {
-      case 'excellent': return 5;
-      case 'good': return 4;
-      case 'fair': return 3;
-      case 'poor': return 2;
-      case 'very poor': return 1;
-      default: return 0;
+      case "excellent":
+        return 5;
+      case "good":
+        return 4;
+      case "fair":
+        return 3;
+      case "poor":
+        return 2;
+      case "very poor":
+        return 1;
+      default:
+        return 0;
     }
   }
 
@@ -263,12 +287,18 @@ export class ConnectionQualityMonitor {
   getRecommendedPollingInterval(): number {
     const quality = this.getConnectionQuality();
     switch (quality) {
-      case 'excellent': return 1000;   // 1 second
-      case 'good': return 2000;        // 2 seconds
-      case 'fair': return 3000;        // 3 seconds
-      case 'poor': return 5000;        // 5 seconds
-      case 'very poor': return 10000;  // 10 seconds
-      default: return 5000;
+      case "excellent":
+        return 1000; // 1 second
+      case "good":
+        return 2000; // 2 seconds
+      case "fair":
+        return 3000; // 3 seconds
+      case "poor":
+        return 5000; // 5 seconds
+      case "very poor":
+        return 10000; // 10 seconds
+      default:
+        return 5000;
     }
   }
 }
@@ -294,7 +324,9 @@ export class AdaptiveEventController {
   }
 
   startAdaptiveEvent(eventName: string, callback: () => void): void {
-    if (!this.socket) {return;}
+    if (!this.socket) {
+      return;
+    }
 
     const frequency = this.eventFrequencies.get(eventName) || 5000;
 
@@ -322,19 +354,19 @@ export class AdaptiveEventController {
     let newFrequency = defaultFreq;
 
     switch (quality) {
-      case 'excellent':
+      case "excellent":
         newFrequency = defaultFreq * 0.8; // 20% faster
         break;
-      case 'good':
+      case "good":
         newFrequency = defaultFreq; // Normal speed
         break;
-      case 'fair':
+      case "fair":
         newFrequency = defaultFreq * 1.5; // 50% slower
         break;
-      case 'poor':
+      case "poor":
         newFrequency = defaultFreq * 2; // 100% slower
         break;
-      case 'very poor':
+      case "very poor":
         newFrequency = defaultFreq * 3; // 200% slower
         break;
     }
@@ -452,7 +484,9 @@ export class EventListenerManager {
  * Cleanup utility to prevent memory leaks
  */
 export const cleanupSocketResources = (socket: Socket | null): void => {
-  if (!socket) {return;}
+  if (!socket) {
+    return;
+  }
 
   // Clear all throttle entries for this socket
   if (socket.id) {
@@ -492,39 +526,49 @@ export class PerformanceMetricsCollector {
     messagesReceived: 0,
   };
 
-  recordEvent(type: 'throttled' | 'debounced' | 'batched' | 'error' | 'connection_drop' | 'reconnect' | 'message_sent' | 'message_received'): void {
+  recordEvent(
+    type:
+      | "throttled"
+      | "debounced"
+      | "batched"
+      | "error"
+      | "connection_drop"
+      | "reconnect"
+      | "message_sent"
+      | "message_received"
+  ): void {
     this.metrics.totalEvents++;
 
     switch (type) {
-      case 'throttled':
+      case "throttled":
         this.metrics.throttledEvents++;
         break;
-      case 'debounced':
+      case "debounced":
         this.metrics.debouncedEvents++;
         break;
-      case 'batched':
+      case "batched":
         this.metrics.batchedEvents++;
         break;
-      case 'error':
+      case "error":
         this.metrics.errorCount++;
         break;
-      case 'connection_drop':
+      case "connection_drop":
         this.metrics.connectionDrops++;
         break;
-      case 'reconnect':
+      case "reconnect":
         this.metrics.reconnects++;
         break;
-      case 'message_sent':
+      case "message_sent":
         this.metrics.messagesSent++;
         break;
-      case 'message_received':
+      case "message_received":
         this.metrics.messagesReceived++;
         break;
     }
   }
 
   recordError(error: Error): void {
-    this.recordEvent('error');
+    this.recordEvent("error");
     this.metrics.lastError = error;
   }
 

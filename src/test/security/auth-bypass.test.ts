@@ -88,15 +88,13 @@ describe("Security Testing - Authentication Bypass", () => {
       session.user.emailVerified = false;
       mockAuth.mockResolvedValue(session);
 
-      const handler = withAuth(
-        async (req, context) => {
-          // Manual email verification check in handler
-          if (!context.user.emailVerified) {
-            return NextResponse.json({ error: "Email verification required" }, { status: 403 });
-          }
-          return NextResponse.json({ sensitive: "data" });
+      const handler = withAuth(async (req, context) => {
+        // Manual email verification check in handler
+        if (!context.user.emailVerified) {
+          return NextResponse.json({ error: "Email verification required" }, { status: 403 });
         }
-      );
+        return NextResponse.json({ sensitive: "data" });
+      });
 
       const request = new NextRequest("http://localhost:3000/api/protected");
       const response = await handler(request);

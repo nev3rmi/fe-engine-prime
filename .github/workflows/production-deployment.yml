@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       skip_health_check:
-        description: 'Skip post-deployment health check'
+        description: "Skip post-deployment health check"
         required: false
         type: boolean
         default: false
@@ -70,7 +70,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

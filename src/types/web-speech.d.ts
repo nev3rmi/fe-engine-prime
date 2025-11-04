@@ -20,7 +20,16 @@ interface SpeechRecognition extends EventTarget {
 }
 
 interface SpeechRecognitionErrorEvent extends Event {
-  error: 'no-speech' | 'aborted' | 'audio-capture' | 'network' | 'not-allowed' | 'service-not-allowed' | 'bad-grammar' | 'language-not-supported' | 'permission-denied';
+  error:
+    | "no-speech"
+    | "aborted"
+    | "audio-capture"
+    | "network"
+    | "not-allowed"
+    | "service-not-allowed"
+    | "bad-grammar"
+    | "language-not-supported"
+    | "permission-denied";
   message: string;
 }
 

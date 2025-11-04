@@ -1,12 +1,9 @@
+import { getToken } from "next-auth/jwt";
+import { Server as SocketIOServer } from "socket.io";
 
-import { getToken } from 'next-auth/jwt';
-import { Server as SocketIOServer } from 'socket.io';
-
-
-
-import { hasPermission } from '@/lib/auth/permissions';
-import { getUserById } from '@/lib/auth/user-service';
-import type { Permission } from '@/types/auth';
+import { hasPermission } from "@/lib/auth/permissions";
+import { getUserById } from "@/lib/auth/user-service";
+import type { Permission } from "@/types/auth";
 import type {
   ServerToClientEvents,
   ClientToServerEvents,
@@ -16,10 +13,11 @@ import type {
   PresenceStatus,
   ChatMessage,
   NewChatMessage,
-  RealtimeNotification} from '@/types/realtime';
+  RealtimeNotification,
+} from "@/types/realtime";
 
-import type { Server as HTTPServer } from 'http';
-import type { Socket } from 'socket.io';
+import type { Server as HTTPServer } from "http";
+import type { Socket } from "socket.io";
 
 // Global socket server instance
 let io: SocketIOServer<
@@ -56,7 +54,7 @@ export const initializeSocketServer = (server: HTTPServer): SocketIOServer => {
     },
     pingTimeout: 60000,
     pingInterval: 25000,
-    transports: ['websocket', 'polling'],
+    transports: ["websocket", "polling"],
   });
 
   // Authentication middleware
@@ -64,12 +62,12 @@ export const initializeSocketServer = (server: HTTPServer): SocketIOServer => {
     try {
       const token = socket.handshake.auth.token;
       if (!token) {
-        return next(new Error('No authentication token provided'));
+        return next(new Error("No authentication token provided"));
       }
 
       // Create headers object for NextAuth getToken
       const headers = new Headers();
-      headers.set('authorization', `Bearer ${token}`);
+      headers.set("authorization", `Bearer ${token}`);
 
       // Verify JWT token using NextAuth
       const decoded = await getToken({
@@ -78,19 +76,19 @@ export const initializeSocketServer = (server: HTTPServer): SocketIOServer => {
       });
 
       if (!decoded?.userId) {
-        return next(new Error('Invalid authentication token'));
+        return next(new Error("Invalid authentication token"));
       }
 
       // Get user details from database
       const user = await getUserById(decoded.userId as string);
       if (!user?.isActive) {
-        return next(new Error('User not found or inactive'));
+        return next(new Error("User not found or inactive"));
       }
 
       // Check if user has real-time chat permission
-      const hasChat = await hasPermission(user, 'chat:read' as Permission);
+      const hasChat = await hasPermission(user, "chat:read" as Permission);
       if (!hasChat) {
-        return next(new Error('Insufficient permissions for real-time features'));
+        return next(new Error("Insufficient permissions for real-time features"));
       }
 
       // Attach user data to socket
@@ -110,17 +108,17 @@ export const initializeSocketServer = (server: HTTPServer): SocketIOServer => {
 
       next();
     } catch (error) {
-      console.error('Socket authentication error:', error);
-      next(new Error('Authentication failed'));
+      console.error("Socket authentication error:", error);
+      next(new Error("Authentication failed"));
     }
   });
 
   // Handle connections
-  io.on('connection', (socket) => {
+  io.on("connection", socket => {
     console.log(`Socket connected: ${socket.id} for user: ${socket.data.userId}`);
 
     // Handle authentication confirmation
-    socket.on('auth:authenticate', async (token, callback) => {
+    socket.on("auth:authenticate", async (token, callback) => {
       try {
         callback(true, socket.data.user);
       } catch (error) {
@@ -129,20 +127,20 @@ export const initializeSocketServer = (server: HTTPServer): SocketIOServer => {
     });
 
     // Handle presence events
-    socket.on('presence:join', () => {
+    socket.on("presence:join", () => {
       handleUserOnline(socket);
     });
 
-    socket.on('presence:leave', () => {
+    socket.on("presence:leave", () => {
       handleUserOffline(socket);
     });
 
-    socket.on('presence:status', (status: PresenceStatus) => {
+    socket.on("presence:status", (status: PresenceStatus) => {
       updateUserStatus(socket.data.userId, status);
     });
 
     // Handle chat messages
-    socket.on('message:send', async (message: NewChatMessage, callback) => {
+    socket.on("message:send", async (message: NewChatMessage, callback) => {
       try {
         const sentMessage = await handleNewMessage(socket, message);
         if (sentMessage) {
@@ -151,42 +149,42 @@ export const initializeSocketServer = (server: HTTPServer): SocketIOServer => {
           callback(false);
         }
       } catch (error) {
-        console.error('Error sending message:', error);
+        console.error("Error sending message:", error);
         callback(false);
       }
     });
 
-    socket.on('message:edit', async (messageId: string, content: string, callback) => {
+    socket.on("message:edit", async (messageId: string, content: string, callback) => {
       try {
         const success = await handleEditMessage(socket, messageId, content);
         callback(success);
       } catch (error) {
-        console.error('Error editing message:', error);
+        console.error("Error editing message:", error);
         callback(false);
       }
     });
 
-    socket.on('message:delete', async (messageId: string, callback) => {
+    socket.on("message:delete", async (messageId: string, callback) => {
       try {
         const success = await handleDeleteMessage(socket, messageId);
         callback(success);
       } catch (error) {
-        console.error('Error deleting message:', error);
+        console.error("Error deleting message:", error);
         callback(false);
       }
     });
 
-    socket.on('message:typing', (channelId: string, isTyping: boolean) => {
+    socket.on("message:typing", (channelId: string, isTyping: boolean) => {
       const onlineUser: OnlineUser = {
         id: socket.data.user.id,
         name: socket.data.user.name,
         image: socket.data.user.image,
         role: socket.data.user.role,
-        status: 'online' as PresenceStatus,
+        status: "online" as PresenceStatus,
         lastActivity: socket.data.lastActivity,
       };
 
-      socket.to(`channel:${channelId}`).emit('user:typing', {
+      socket.to(`channel:${channelId}`).emit("user:typing", {
         userId: socket.data.userId,
         user: onlineUser,
         isTyping,
@@ -194,7 +192,7 @@ export const initializeSocketServer = (server: HTTPServer): SocketIOServer => {
     });
 
     // Handle room management
-    socket.on('room:join', (roomId: string, callback) => {
+    socket.on("room:join", (roomId: string, callback) => {
       try {
         socket.join(`channel:${roomId}`);
         if (!socket.data.rooms.includes(roomId)) {
@@ -202,24 +200,24 @@ export const initializeSocketServer = (server: HTTPServer): SocketIOServer => {
         }
         callback(true);
       } catch (error) {
-        console.error('Error joining room:', error);
+        console.error("Error joining room:", error);
         callback(false);
       }
     });
 
-    socket.on('room:leave', (roomId: string, callback) => {
+    socket.on("room:leave", (roomId: string, callback) => {
       try {
         socket.leave(`channel:${roomId}`);
         socket.data.rooms = socket.data.rooms.filter(r => r !== roomId);
         callback(true);
       } catch (error) {
-        console.error('Error leaving room:', error);
+        console.error("Error leaving room:", error);
         callback(false);
       }
     });
 
     // Handle data subscriptions
-    socket.on('data:subscribe', (dataType: string, filters?: any) => {
+    socket.on("data:subscribe", (dataType: string, filters?: any) => {
       const subscription = `${dataType}:${JSON.stringify(filters || {})}`;
       if (!socket.data.subscriptions.includes(subscription)) {
         socket.data.subscriptions.push(subscription);
@@ -227,34 +225,36 @@ export const initializeSocketServer = (server: HTTPServer): SocketIOServer => {
       socket.join(`data:${dataType}`);
     });
 
-    socket.on('data:unsubscribe', (dataType: string) => {
+    socket.on("data:unsubscribe", (dataType: string) => {
       socket.data.subscriptions = socket.data.subscriptions.filter(
         sub => !sub.startsWith(`${dataType}:`)
       );
       socket.leave(`data:${dataType}`);
     });
 
-    socket.on('widget:subscribe', (widgetId: string) => {
+    socket.on("widget:subscribe", (widgetId: string) => {
       socket.join(`widget:${widgetId}`);
     });
 
-    socket.on('widget:unsubscribe', (widgetId: string) => {
+    socket.on("widget:unsubscribe", (widgetId: string) => {
       socket.leave(`widget:${widgetId}`);
     });
 
     // Handle notifications
-    socket.on('notification:mark_read', (notificationId: string) => {
+    socket.on("notification:mark_read", (notificationId: string) => {
       markNotificationAsRead(socket.data.userId, notificationId);
-      socket.emit('notification:read', notificationId);
+      socket.emit("notification:read", notificationId);
     });
 
-    socket.on('notification:mark_all_read', () => {
+    socket.on("notification:mark_all_read", () => {
       markAllNotificationsAsRead(socket.data.userId);
     });
 
     // Handle disconnection
-    socket.on('disconnect', (reason) => {
-      console.log(`Socket disconnected: ${socket.id} for user: ${socket.data.userId}, reason: ${reason}`);
+    socket.on("disconnect", reason => {
+      console.log(
+        `Socket disconnected: ${socket.id} for user: ${socket.data.userId}, reason: ${reason}`
+      );
       handleUserOffline(socket);
     });
 
@@ -273,7 +273,7 @@ export const initializeSocketServer = (server: HTTPServer): SocketIOServer => {
     cleanupInactiveUsers();
   }, 60000); // Every minute
 
-  console.log('Socket.io server initialized');
+  console.log("Socket.io server initialized");
   return io;
 };
 
@@ -294,7 +294,7 @@ const handleUserOnline = (socket: Socket) => {
     name: user.name,
     image: user.image,
     role: user.role,
-    status: 'online',
+    status: "online",
     lastActivity: new Date(),
   };
 
@@ -307,7 +307,7 @@ const handleUserOnline = (socket: Socket) => {
   userSockets.get(user.id)!.push(socket.id);
 
   // Notify all clients
-  socket.broadcast.emit('user:online', {
+  socket.broadcast.emit("user:online", {
     id: user.id,
     name: user.name,
     image: user.image,
@@ -315,7 +315,7 @@ const handleUserOnline = (socket: Socket) => {
   });
 
   // Send current online users to the new user
-  socket.emit('presence:update', Array.from(onlineUsers.values()));
+  socket.emit("presence:update", Array.from(onlineUsers.values()));
 };
 
 /**
@@ -338,8 +338,8 @@ const handleUserOffline = (socket: Socket) => {
       userSockets.delete(userId);
 
       // Notify all clients
-      socket.broadcast.emit('user:offline', userId);
-      socket.broadcast.emit('presence:update', Array.from(onlineUsers.values()));
+      socket.broadcast.emit("user:offline", userId);
+      socket.broadcast.emit("presence:update", Array.from(onlineUsers.values()));
     }
   }
 };
@@ -355,7 +355,7 @@ const updateUserStatus = (userId: string, status: PresenceStatus) => {
     onlineUsers.set(userId, user);
 
     // Notify all clients
-    io?.emit('presence:update', Array.from(onlineUsers.values()));
+    io?.emit("presence:update", Array.from(onlineUsers.values()));
   }
 };
 
@@ -368,7 +368,7 @@ const handleNewMessage = async (
 ): Promise<ChatMessage | null> => {
   try {
     // Check permissions
-    if (!hasPermission(socket.data.user.permissions, 'chat:write' as Permission)) {
+    if (!hasPermission(socket.data.user.permissions, "chat:write" as Permission)) {
       return null;
     }
 
@@ -406,18 +406,18 @@ const handleNewMessage = async (
     }
 
     // Emit to all users in the channel
-    io?.to(`channel:${message.channelId}`).emit('message:new', newMessage);
+    io?.to(`channel:${message.channelId}`).emit("message:new", newMessage);
 
     // Create notifications for mentions
     if (message.mentions && message.mentions.length > 0) {
       message.mentions.forEach(mentionedUserId => {
         if (mentionedUserId !== socket.data.userId) {
           createNotification(mentionedUserId, {
-            type: 'mention',
+            type: "mention",
             title: `${socket.data.user.name} mentioned you`,
             message: message.content.substring(0, 100),
             data: { messageId: newMessage.id, channelId: message.channelId },
-            priority: 'normal',
+            priority: "normal",
           });
         }
       });
@@ -425,7 +425,7 @@ const handleNewMessage = async (
 
     return newMessage;
   } catch (error) {
-    console.error('Error handling new message:', error);
+    console.error("Error handling new message:", error);
     return null;
   }
 };
@@ -444,11 +444,15 @@ const handleEditMessage = async (
       const messageIndex = messages.findIndex(m => m.id === messageId);
       if (messageIndex > -1) {
         const message = messages[messageIndex];
-        if (!message) {return false;}
+        if (!message) {
+          return false;
+        }
 
         // Check if user can edit (author or has permission)
-        if (message.authorId !== socket.data.userId &&
-            !hasPermission(socket.data.user.permissions, 'chat:moderate' as Permission)) {
+        if (
+          message.authorId !== socket.data.userId &&
+          !hasPermission(socket.data.user.permissions, "chat:moderate" as Permission)
+        ) {
           return false;
         }
 
@@ -459,7 +463,7 @@ const handleEditMessage = async (
         message.updatedAt = new Date();
 
         // Emit update
-        io?.to(`channel:${channelId}`).emit('message:edit', {
+        io?.to(`channel:${channelId}`).emit("message:edit", {
           id: messageId,
           content,
           isEdited: true,
@@ -473,7 +477,7 @@ const handleEditMessage = async (
 
     return false;
   } catch (error) {
-    console.error('Error editing message:', error);
+    console.error("Error editing message:", error);
     return false;
   }
 };
@@ -481,21 +485,22 @@ const handleEditMessage = async (
 /**
  * Handle message delete
  */
-const handleDeleteMessage = async (
-  socket: Socket,
-  messageId: string
-): Promise<boolean> => {
+const handleDeleteMessage = async (socket: Socket, messageId: string): Promise<boolean> => {
   try {
     // Find and remove the message
     for (const [channelId, messages] of chatMessages.entries()) {
       const messageIndex = messages.findIndex(m => m.id === messageId);
       if (messageIndex > -1) {
         const message = messages[messageIndex];
-        if (!message) {return false;}
+        if (!message) {
+          return false;
+        }
 
         // Check if user can delete (author or has permission)
-        if (message.authorId !== socket.data.userId &&
-            !hasPermission(socket.data.user.permissions, 'chat:moderate' as Permission)) {
+        if (
+          message.authorId !== socket.data.userId &&
+          !hasPermission(socket.data.user.permissions, "chat:moderate" as Permission)
+        ) {
           return false;
         }
 
@@ -503,7 +508,7 @@ const handleDeleteMessage = async (
         messages.splice(messageIndex, 1);
 
         // Emit deletion
-        io?.to(`channel:${channelId}`).emit('message:delete', messageId);
+        io?.to(`channel:${channelId}`).emit("message:delete", messageId);
 
         return true;
       }
@@ -511,7 +516,7 @@ const handleDeleteMessage = async (
 
     return false;
   } catch (error) {
-    console.error('Error deleting message:', error);
+    console.error("Error deleting message:", error);
     return false;
   }
 };
@@ -521,7 +526,7 @@ const handleDeleteMessage = async (
  */
 const createNotification = (
   userId: string,
-  notification: Omit<RealtimeNotification, 'id' | 'userId' | 'isRead' | 'createdAt'>
+  notification: Omit<RealtimeNotification, "id" | "userId" | "isRead" | "createdAt">
 ) => {
   const newNotification: RealtimeNotification = {
     ...notification,
@@ -547,7 +552,7 @@ const createNotification = (
   const userSocketList = userSockets.get(userId);
   if (userSocketList && userSocketList.length > 0) {
     userSocketList.forEach(socketId => {
-      io?.to(socketId).emit('notification:new', newNotification);
+      io?.to(socketId).emit("notification:new", newNotification);
     });
   }
 };
@@ -571,7 +576,7 @@ const markNotificationAsRead = (userId: string, notificationId: string) => {
 const markAllNotificationsAsRead = (userId: string) => {
   const userNotifs = userNotifications.get(userId);
   if (userNotifs) {
-    userNotifs.forEach(n => n.isRead = true);
+    userNotifs.forEach(n => (n.isRead = true));
   }
 };
 
@@ -588,19 +593,21 @@ const cleanupInactiveUsers = () => {
       userSockets.delete(userId);
 
       // Notify all clients
-      io?.emit('user:offline', userId);
+      io?.emit("user:offline", userId);
     }
   }
 
   // Update presence
-  io?.emit('presence:update', Array.from(onlineUsers.values()));
+  io?.emit("presence:update", Array.from(onlineUsers.values()));
 };
 
 /**
  * Broadcast data synchronization
  */
 export const broadcastDataSync = (dataType: string, data: any, userId?: string) => {
-  if (!io) {return;}
+  if (!io) {
+    return;
+  }
 
   const syncData = {
     type: dataType,
@@ -610,16 +617,18 @@ export const broadcastDataSync = (dataType: string, data: any, userId?: string) 
     userId,
   };
 
-  io.to(`data:${dataType}`).emit('data:sync', syncData);
+  io.to(`data:${dataType}`).emit("data:sync", syncData);
 };
 
 /**
  * Update widget data
  */
 export const updateWidget = (widgetId: string, data: any) => {
-  if (!io) {return;}
+  if (!io) {
+    return;
+  }
 
-  io.to(`widget:${widgetId}`).emit('widget:update', widgetId, {
+  io.to(`widget:${widgetId}`).emit("widget:update", widgetId, {
     data,
     lastUpdated: new Date(),
   });
@@ -629,10 +638,12 @@ export const updateWidget = (widgetId: string, data: any) => {
  * Send system notification
  */
 export const sendSystemNotification = (
-  notification: Omit<RealtimeNotification, 'id' | 'userId' | 'isRead' | 'createdAt'>,
+  notification: Omit<RealtimeNotification, "id" | "userId" | "isRead" | "createdAt">,
   targetUsers?: string[]
 ) => {
-  if (!io) {return;}
+  if (!io) {
+    return;
+  }
 
   if (targetUsers) {
     targetUsers.forEach(userId => createNotification(userId, notification));
@@ -641,12 +652,12 @@ export const sendSystemNotification = (
     const allNotification: RealtimeNotification = {
       ...notification,
       id: `sys_notif_${Date.now()}`,
-      userId: 'system',
+      userId: "system",
       isRead: false,
       createdAt: new Date(),
     };
 
-    io.emit('notification:new', allNotification);
+    io.emit("notification:new", allNotification);
   }
 };
 

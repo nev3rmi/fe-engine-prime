@@ -1,46 +1,44 @@
-import '@testing-library/jest-dom'
-import { expect, afterEach, vi } from 'vitest'
-import { cleanup } from '@testing-library/react'
+import "@testing-library/jest-dom";
+import { expect, afterEach, vi } from "vitest";
+import { cleanup } from "@testing-library/react";
 
 // Define the matchers interface locally since the import path is not available
 interface TestingLibraryMatchers<E, R> {
-  toBeInTheDocument(): R
-  toHaveTextContent(text: string | RegExp): R
-  toBeVisible(): R
-  toBeDisabled(): R
+  toBeInTheDocument(): R;
+  toHaveTextContent(text: string | RegExp): R;
+  toBeVisible(): R;
+  toBeDisabled(): R;
   // Add more matchers as needed
 }
 
 // Extend Vitest's expect with jest-dom matchers
-declare module 'vitest' {
-  interface Assertion<T = any>
-    extends jest.Matchers<void, T>,
-      TestingLibraryMatchers<T, void> {}
+declare module "vitest" {
+  interface Assertion<T = any> extends jest.Matchers<void, T>, TestingLibraryMatchers<T, void> {}
 }
 
 // Cleanup after each test case
 afterEach(() => {
-  cleanup()
-})
+  cleanup();
+});
 
 // Mock environment variables
-process.env.NEXTAUTH_SECRET = 'test-secret'
-process.env.NEXTAUTH_URL = 'http://localhost:3000'
-process.env.JWT_SECRET = 'test-jwt-secret'
+process.env.NEXTAUTH_SECRET = "test-secret";
+process.env.NEXTAUTH_URL = "http://localhost:3000";
+process.env.JWT_SECRET = "test-jwt-secret";
 
 // Mock Next.js router
-vi.mock('next/router', () => ({
+vi.mock("next/router", () => ({
   useRouter: () => ({
     push: vi.fn(),
     replace: vi.fn(),
-    pathname: '/',
+    pathname: "/",
     query: {},
-    asPath: '/',
+    asPath: "/",
   }),
-}))
+}));
 
 // Mock Next.js navigation
-vi.mock('next/navigation', () => ({
+vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: vi.fn(),
     replace: vi.fn(),
@@ -49,19 +47,19 @@ vi.mock('next/navigation', () => ({
     forward: vi.fn(),
     prefetch: vi.fn(),
   }),
-  usePathname: () => '/',
+  usePathname: () => "/",
   useSearchParams: () => new URLSearchParams(),
-}))
+}));
 
 // Mock Next.js image
-vi.mock('next/image', () => ({
+vi.mock("next/image", () => ({
   default: ({ src, alt, ...props }: any) => {
-    return null // Return null instead of JSX in TS file
+    return null; // Return null instead of JSX in TS file
   },
-}))
+}));
 
 // Mock Socket.io client
-vi.mock('socket.io-client', () => ({
+vi.mock("socket.io-client", () => ({
   io: vi.fn(() => ({
     on: vi.fn(),
     off: vi.fn(),
@@ -69,27 +67,27 @@ vi.mock('socket.io-client', () => ({
     connect: vi.fn(),
     disconnect: vi.fn(),
     connected: true,
-    id: 'mock-socket-id',
+    id: "mock-socket-id",
   })),
-}))
+}));
 
 // Mock Auth.js
-vi.mock('next-auth/react', () => ({
+vi.mock("next-auth/react", () => ({
   useSession: vi.fn(() => ({
     data: null,
-    status: 'unauthenticated',
+    status: "unauthenticated",
     update: vi.fn(),
   })),
   signIn: vi.fn(),
   signOut: vi.fn(),
   getSession: vi.fn(() => Promise.resolve(null)),
   SessionProvider: ({ children }: { children: React.ReactNode }) => children,
-}))
+}));
 
 // Mock window.matchMedia for responsive tests
-Object.defineProperty(window, 'matchMedia', {
+Object.defineProperty(window, "matchMedia", {
   writable: true,
-  value: vi.fn().mockImplementation((query) => ({
+  value: vi.fn().mockImplementation(query => ({
     matches: false,
     media: query,
     onchange: null,
@@ -99,21 +97,21 @@ Object.defineProperty(window, 'matchMedia', {
     removeEventListener: vi.fn(),
     dispatchEvent: vi.fn(),
   })),
-})
+});
 
 // Mock ResizeObserver
 global.ResizeObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   disconnect: vi.fn(),
-}))
+}));
 
 // Mock IntersectionObserver
 global.IntersectionObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   disconnect: vi.fn(),
-}))
+}));
 
 // Mock Web APIs
 global.Audio = vi.fn().mockImplementation(() => ({
@@ -126,21 +124,21 @@ global.Audio = vi.fn().mockImplementation(() => ({
   volume: 1,
   addEventListener: vi.fn(),
   removeEventListener: vi.fn(),
-}))
+}));
 
 // Mock Notification API
 global.Notification = {
-  requestPermission: vi.fn(() => Promise.resolve('granted')),
-  permission: 'granted',
-} as any
+  requestPermission: vi.fn(() => Promise.resolve("granted")),
+  permission: "granted",
+} as any;
 
 // Mock clipboard API
 Object.assign(navigator, {
   clipboard: {
     writeText: vi.fn(() => Promise.resolve()),
-    readText: vi.fn(() => Promise.resolve('')),
+    readText: vi.fn(() => Promise.resolve("")),
   },
-})
+});
 
 // Mock localStorage
 const localStorageMock = {
@@ -150,21 +148,21 @@ const localStorageMock = {
   clear: vi.fn(),
   length: 0,
   key: vi.fn(),
-}
+};
 
-Object.defineProperty(window, 'localStorage', {
+Object.defineProperty(window, "localStorage", {
   value: localStorageMock,
   writable: true,
-})
+});
 
 // Mock sessionStorage
-Object.defineProperty(window, 'sessionStorage', {
+Object.defineProperty(window, "sessionStorage", {
   value: localStorageMock,
   writable: true,
-})
+});
 
 // Mock console methods for cleaner test output
-if (process.env.NODE_ENV === 'test') {
+if (process.env.NODE_ENV === "test") {
   global.console = {
     ...console,
     log: vi.fn(),
@@ -172,5 +170,5 @@ if (process.env.NODE_ENV === 'test') {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  }
+  };
 }

@@ -250,7 +250,17 @@ export async function checkContextPermission(
 export const authRoutes = {
   // Public routes (no authentication required)
   // Note: "/" removed - now handled in middleware with auth check (FE-229)
-  public: ["/login", "/auth/signin", "/auth/signup", "/auth/error", "/api/health", "/api/auth/.*", "/avatar-demo", "/api/avatar/.*", "/demo/.*"],
+  public: [
+    "/login",
+    "/auth/signin",
+    "/auth/signup",
+    "/auth/error",
+    "/api/health",
+    "/api/auth/.*",
+    "/avatar-demo",
+    "/api/avatar/.*",
+    "/demo/.*",
+  ],
 
   // Protected routes (authentication required)
   protected: ["/dashboard", "/profile", "/settings"],
