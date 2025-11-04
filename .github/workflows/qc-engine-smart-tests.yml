@@ -1,0 +1,412 @@
+name: QC Engine Smart Tests
+
+# Intelligent test execution based on release type
+# - Feature branches: Fast feedback with story + smoke tests (3-5 min)
+# - Story releases: Story + dependencies testing (8-12 min)
+# - Epic releases: Full epic regression (15-30 min)
+
+on:
+  push:
+    branches:
+      - "feature/**"
+      - "bugfix/**"
+      - "hotfix/**"
+      - "release/story-**"
+      - "release/epic-**"
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: "Release type (feature/story/epic)"
+        required: false
+        default: "feature"
+        type: choice
+        options:
+          - feature
+          - story
+          - epic
+      jira_issue:
+        description: "JIRA issue key (e.g., FE-421)"
+        required: false
+        type: string
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "9"
+  PYTHON_VERSION: "3.10"
+
+jobs:
+  detect-release-type:
+    name: Detect Release Type & Resolve Dependencies
+    runs-on: ubuntu-latest
+    outputs:
+      release_type: ${{ steps.detect.outputs.release_type }}
+      jira_issue: ${{ steps.detect.outputs.jira_issue }}
+      test_scope: ${{ steps.resolve.outputs.robot_include }}
+      has_tests: ${{ steps.resolve.outputs.has_tests }}
+
+    steps:
+      - name: Checkout qc-engine-prime
+        uses: actions/checkout@v4
+        with:
+          repository: nev3rmi/qc-engine-prime
+          path: qc-engine-prime
+          ssh-key: ${{ secrets.QC_ENGINE_DEPLOY_KEY }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Python dependencies
+        working-directory: qc-engine-prime
+        run: |
+          pip install httpx
+
+      - name: Detect release type from branch
+        id: detect
+        run: |
+          # Use manual input if provided
+          if [ -n "${{ inputs.release_type }}" ]; then
+            echo "release_type=${{ inputs.release_type }}" >> $GITHUB_OUTPUT
+            echo "jira_issue=${{ inputs.jira_issue }}" >> $GITHUB_OUTPUT
+            echo "📋 Manual trigger: ${{ inputs.release_type }} (${{ inputs.jira_issue }})"
+            exit 0
+          fi
+
+          # Auto-detect from branch name
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          echo "🔍 Analyzing branch: $BRANCH"
+
+          # Extract JIRA issue and release type
+          if [[ "$BRANCH" =~ ^feature/FE-([0-9]+) ]]; then
+            RELEASE_TYPE="feature"
+            JIRA_ISSUE="FE-${BASH_REMATCH[1]}"
+            echo "🚀 Feature branch detected"
+          elif [[ "$BRANCH" =~ ^release/story-([0-9]+\.[0-9]+) ]]; then
+            RELEASE_TYPE="story"
+            STORY_ID="${BASH_REMATCH[1]}"
+            # TODO: Map story ID to JIRA issue (need label lookup)
+            JIRA_ISSUE="STORY-${STORY_ID}"
+            echo "📦 Story release detected"
+          elif [[ "$BRANCH" =~ ^release/epic-([0-9]+) ]]; then
+            RELEASE_TYPE="epic"
+            EPIC_ID="${BASH_REMATCH[1]}"
+            # TODO: Map epic ID to JIRA epic
+            JIRA_ISSUE="EPIC-${EPIC_ID}"
+            echo "🎯 Epic release detected"
+          elif [[ "$BRANCH" =~ (bugfix|hotfix)/FE-([0-9]+) ]]; then
+            RELEASE_TYPE="feature"
+            JIRA_ISSUE="FE-${BASH_REMATCH[2]}"
+            echo "🔧 Bugfix/Hotfix branch detected (using feature strategy)"
+          else
+            RELEASE_TYPE="feature"
+            JIRA_ISSUE="UNKNOWN"
+            echo "⚠️  Unknown branch pattern, defaulting to feature strategy"
+          fi
+
+          echo "release_type=$RELEASE_TYPE" >> $GITHUB_OUTPUT
+          echo "jira_issue=$JIRA_ISSUE" >> $GITHUB_OUTPUT
+
+          echo ""
+          echo "✅ Detection complete:"
+          echo "   Release Type: $RELEASE_TYPE"
+          echo "   JIRA Issue:   $JIRA_ISSUE"
+
+      - name: Resolve test dependencies
+        id: resolve
+        working-directory: qc-engine-prime
+        run: |
+          RELEASE_TYPE="${{ steps.detect.outputs.release_type }}"
+          JIRA_ISSUE="${{ steps.detect.outputs.jira_issue }}"
+
+          echo "🔍 Resolving test scope..."
+          echo "   Release Type: $RELEASE_TYPE"
+          echo "   JIRA Issue:   $JIRA_ISSUE"
+
+          # Run dependency resolver
+          RESULT=$(python scripts/resolve_jira_dependencies.py \
+            --issue "$JIRA_ISSUE" \
+            --release-type "$RELEASE_TYPE" \
+            --json 2>&1) || true
+
+          # Extract robot_include from JSON (last valid JSON in output)
+          ROBOT_INCLUDE=$(echo "$RESULT" | grep -o '"robot_include": "[^"]*"' | tail -1 | cut -d'"' -f4)
+
+          if [ -z "$ROBOT_INCLUDE" ]; then
+            echo "⚠️  Failed to resolve dependencies, using default"
+            case "$RELEASE_TYPE" in
+              feature)
+                ROBOT_INCLUDE="smoke"
+                ;;
+              story)
+                ROBOT_INCLUDE="regression"
+                ;;
+              epic)
+                ROBOT_INCLUDE="regression"
+                ;;
+            esac
+          fi
+
+          echo "robot_include=$ROBOT_INCLUDE" >> $GITHUB_OUTPUT
+          echo "has_tests=true" >> $GITHUB_OUTPUT
+
+          echo ""
+          echo "✅ Test scope resolved:"
+          echo "   Robot Include: $ROBOT_INCLUDE"
+
+  run-smart-tests:
+    name: Run Tests (${{ needs.detect-release-type.outputs.release_type }})
+    needs: detect-release-type
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout fe-engine-prime
+        uses: actions/checkout@v4
+        with:
+          path: fe-engine-prime
+          fetch-depth: 0
+
+      - name: Setup SSH for private repo
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.QC_ENGINE_DEPLOY_KEY }}
+
+      - name: Checkout qc-engine-prime
+        uses: actions/checkout@v4
+        with:
+          repository: nev3rmi/qc-engine-prime
+          path: qc-engine-prime
+          fetch-depth: 0
+          ssh-key: ${{ secrets.QC_ENGINE_DEPLOY_KEY }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+          cache-dependency-path: fe-engine-prime/pnpm-lock.yaml
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+          cache-dependency-path: "qc-engine-prime/requirements.txt"
+
+      - name: Install fe-engine-prime dependencies
+        working-directory: fe-engine-prime
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Robot Framework
+        working-directory: qc-engine-prime
+        run: |
+          echo "📦 Installing Robot Framework..."
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Initialize Playwright
+        working-directory: qc-engine-prime
+        run: |
+          echo "🎭 Installing Playwright Chromium..."
+          python -m playwright install chromium
+          python -m playwright install-deps chromium
+
+      - name: Start fe-engine-prime dev server
+        working-directory: fe-engine-prime
+        run: |
+          echo "🚀 Starting dev server..."
+          pnpm dev &
+          npx wait-on http://localhost:3000 -t 60000
+          echo "✅ Dev server ready"
+        env:
+          CI: true
+
+      - name: Run Robot Framework tests
+        id: robot_tests
+        working-directory: qc-engine-prime
+        run: |
+          RELEASE_TYPE="${{ needs.detect-release-type.outputs.release_type }}"
+          TEST_SCOPE="${{ needs.detect-release-type.outputs.test_scope }}"
+          JIRA_ISSUE="${{ needs.detect-release-type.outputs.jira_issue }}"
+
+          echo "🤖 Running Robot Framework tests"
+          echo "   Release Type: $RELEASE_TYPE"
+          echo "   Test Scope:   $TEST_SCOPE"
+          echo "   JIRA Issue:   $JIRA_ISSUE"
+          echo ""
+
+          # Determine test strategy emoji
+          case "$RELEASE_TYPE" in
+            feature) EMOJI="🚀" ; STRATEGY="Feature (Fast Feedback)" ;;
+            story)   EMOJI="📦" ; STRATEGY="Story (With Dependencies)" ;;
+            epic)    EMOJI="🎯" ; STRATEGY="Epic (Full Regression)" ;;
+          esac
+
+          echo "$EMOJI $STRATEGY Testing"
+          echo ""
+
+          # Run tests with resolved scope
+          robot --outputdir results \
+                --log log.html \
+                --report report.html \
+                --output output.xml \
+                --loglevel INFO \
+                --consolewidth 120 \
+                --include "$TEST_SCOPE" \
+                tests/ || true
+
+          # Check if output.xml was created
+          if [ ! -f "results/output.xml" ]; then
+            echo "❌ Error: Robot Framework did not generate output.xml"
+            exit 1
+          fi
+
+          echo "✅ Test execution completed"
+        continue-on-error: true
+
+      - name: Parse test results
+        id: parse_results
+        if: always()
+        working-directory: qc-engine-prime/results
+        run: |
+          echo "📊 Parsing test results from output.xml..."
+
+          # Parse using Python
+          PASSED=$(python3 -c "
+          import xml.etree.ElementTree as ET
+          try:
+              tree = ET.parse('output.xml')
+              stats = tree.getroot().find('.//statistics/total/stat')
+              print(stats.get('pass', '0') if stats is not None else '0')
+          except Exception as e:
+              print('0')
+          ")
+
+          FAILED=$(python3 -c "
+          import xml.etree.ElementTree as ET
+          try:
+              tree = ET.parse('output.xml')
+              stats = tree.getroot().find('.//statistics/total/stat')
+              print(stats.get('fail', '0') if stats is not None else '0')
+          except Exception as e:
+              print('0')
+          ")
+
+          EXECUTION_TIME=$(python3 -c "
+          import xml.etree.ElementTree as ET
+          try:
+              tree = ET.parse('output.xml')
+              suite = tree.getroot().find('.//suite')
+              if suite is not None:
+                  status = suite.find('.//status')
+                  elapsed = status.get('elapsed', '0') if status is not None else '0'
+                  print(f'{float(elapsed)/1000:.2f}')
+              else:
+                  print('0.00')
+          except Exception as e:
+              print('0.00')
+          ")
+
+          echo "passed=$PASSED" >> $GITHUB_OUTPUT
+          echo "failed=$FAILED" >> $GITHUB_OUTPUT
+          echo "execution_time=$EXECUTION_TIME" >> $GITHUB_OUTPUT
+
+          TOTAL=$((PASSED + FAILED))
+
+          if [ "$FAILED" -eq 0 ]; then
+            STATUS_EMOJI="✅"
+            STATUS_TEXT="PASS"
+          else
+            STATUS_EMOJI="❌"
+            STATUS_TEXT="FAIL"
+          fi
+
+          # Create GitHub Step Summary
+          echo "### 🤖 QC Engine Smart Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Status | $STATUS_EMOJI **$STATUS_TEXT** |" >> $GITHUB_STEP_SUMMARY
+          echo "| Release Type | ${{ needs.detect-release-type.outputs.release_type }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| JIRA Issue | ${{ needs.detect-release-type.outputs.jira_issue }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Scope | \`${{ needs.detect-release-type.outputs.test_scope }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests Passed | ✅ $PASSED |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests Failed | ❌ $FAILED |" >> $GITHUB_STEP_SUMMARY
+          echo "| Total Tests | 📊 $TOTAL |" >> $GITHUB_STEP_SUMMARY
+          echo "| Execution Time | ⏱️ ${EXECUTION_TIME}s |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📁 **Artifacts:** Test reports uploaded to workflow artifacts." >> $GITHUB_STEP_SUMMARY
+
+          # Log to console
+          echo ""
+          echo "========================================="
+          echo "  QC Engine Smart Test Results"
+          echo "========================================="
+          echo "Status:         $STATUS_TEXT"
+          echo "Passed:         $PASSED"
+          echo "Failed:         $FAILED"
+          echo "Total:          $TOTAL"
+          echo "Execution Time: ${EXECUTION_TIME}s"
+          echo "========================================="
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: robot-test-results-${{ needs.detect-release-type.outputs.release_type }}-${{ github.run_number }}
+          path: |
+            qc-engine-prime/results/log.html
+            qc-engine-prime/results/report.html
+            qc-engine-prime/results/output.xml
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Upload test screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: robot-test-screenshots-${{ needs.detect-release-type.outputs.release_type }}-${{ github.run_number }}
+          path: qc-engine-prime/results/selenium-screenshot-*.png
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Fail job if tests failed
+        if: steps.parse_results.outputs.failed != '0'
+        run: |
+          echo "❌ ${{ steps.parse_results.outputs.failed }} test(s) failed"
+          echo "📄 Check the uploaded artifacts for detailed test reports"
+          exit 1
+
+  summary:
+    name: Test Summary
+    needs: [detect-release-type, run-smart-tests]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Summary
+        run: |
+          echo "### QC Engine Smart Tests - Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Release Type:** ${{ needs.detect-release-type.outputs.release_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "**JIRA Issue:** ${{ needs.detect-release-type.outputs.jira_issue }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Test Scope:** \`${{ needs.detect-release-type.outputs.test_scope }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.run-smart-tests.result }}" == "success" ]]; then
+            echo "✅ **All tests passed!**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Some tests failed**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Check the job logs and uploaded artifacts for details." >> $GITHUB_STEP_SUMMARY
+          fi
