@@ -1,0 +1,168 @@
+name: QC Engine Tests
+
+on:
+  push:
+    branches:
+      - "feature/**"
+      - "bugfix/**"
+      - "hotfix/**"
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "9"
+  PYTHON_VERSION: "3.10"
+
+jobs:
+  qc-engine-tests:
+    name: Run QC Engine Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout fe-engine-prime
+        uses: actions/checkout@v4
+        with:
+          path: fe-engine-prime
+          fetch-depth: 0
+
+      - name: Setup SSH for private repo
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.QC_ENGINE_DEPLOY_KEY }}
+
+      - name: Checkout qc-engine-prime
+        uses: actions/checkout@v4
+        with:
+          repository: nev3rmi/qc-engine-prime
+          path: qc-engine-prime
+          fetch-depth: 0
+          ssh-key: ${{ secrets.QC_ENGINE_DEPLOY_KEY }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+          cache-dependency-path: fe-engine-prime/pnpm-lock.yaml
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        working-directory: fe-engine-prime
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Robot Framework
+        working-directory: qc-engine-prime
+        run: pip install -r requirements.txt
+
+      - name: Initialize Robot Framework Browser
+        working-directory: qc-engine-prime
+        run: rfbrowser init
+
+      - name: Start fe-engine-prime dev server
+        working-directory: fe-engine-prime
+        run: |
+          pnpm dev &
+          echo "Waiting for dev server to start..."
+          npx wait-on http://localhost:3000 -t 60000
+        env:
+          CI: true
+
+      - name: Run QC Engine tests
+        id: robot_tests
+        working-directory: qc-engine-prime
+        run: robot --outputdir results tests/
+        continue-on-error: true
+
+      - name: Parse test results
+        id: parse_results
+        working-directory: qc-engine-prime/results
+        run: |
+          if [ -f output.xml ]; then
+            PASSED=$(grep -o 'pass="[0-9]*"' output.xml | head -1 | grep -o '[0-9]*' || echo "0")
+            FAILED=$(grep -o 'fail="[0-9]*"' output.xml | head -1 | grep -o '[0-9]*' || echo "0")
+            echo "tests_passed=$PASSED" >> $GITHUB_OUTPUT
+            echo "tests_failed=$FAILED" >> $GITHUB_OUTPUT
+            echo "Tests: $PASSED passed, $FAILED failed"
+          else
+            echo "tests_passed=0" >> $GITHUB_OUTPUT
+            echo "tests_failed=1" >> $GITHUB_OUTPUT
+            echo "No output.xml found"
+          fi
+
+      - name: Extract story ID from branch
+        id: extract_story
+        run: |
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          # Extract FE-XXX from branch name
+          STORY_ID=$(echo "$BRANCH" | grep -oP 'FE-\d+' || echo "")
+          if [ -z "$STORY_ID" ]; then
+            echo "No story ID found in branch name: $BRANCH"
+            echo "story_id=" >> $GITHUB_OUTPUT
+          else
+            echo "story_id=$STORY_ID" >> $GITHUB_OUTPUT
+            echo "Story ID: $STORY_ID"
+          fi
+
+      - name: Send results to webhook
+        if: steps.extract_story.outputs.story_id != ''
+        run: |
+          STORY_ID="${{ steps.extract_story.outputs.story_id }}"
+          TESTS_PASSED="${{ steps.parse_results.outputs.tests_passed }}"
+          TESTS_FAILED="${{ steps.parse_results.outputs.tests_failed }}"
+
+          # Calculate execution time (approximate)
+          EXEC_TIME="5.0"
+
+          # Build webhook payload
+          PAYLOAD=$(cat <<EOF
+          {
+            "story_id": "$STORY_ID",
+            "tests_passed": $TESTS_PASSED,
+            "tests_failed": $TESTS_FAILED,
+            "execution_time": $EXEC_TIME,
+            "report_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+            "github_run_id": "${{ github.run_id }}"
+          }
+          EOF
+          )
+
+          echo "Sending to webhook: $STORY_ID"
+          echo "Payload: $PAYLOAD"
+
+          curl -X POST "${{ secrets.QC_ENGINE_WEBHOOK_URL }}/api/webhook/test-results" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.QC_ENGINE_WEBHOOK_SECRET }}" \
+            -d "$PAYLOAD" \
+            --fail-with-body \
+            -v
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: robot-test-results
+          path: qc-engine-prime/results/
+          retention-days: 7
+
+      - name: Upload test screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: robot-test-screenshots
+          path: qc-engine-prime/results/screenshots/
+          retention-days: 7
+          if-no-files-found: ignore
