@@ -22,12 +22,14 @@ describe("Authentication Middleware", () => {
   let mockHasAllPermissions: any;
   let mockHasAnyPermission: any;
 
-  beforeEach(() => {
-    mockAuth = vi.mocked(await vi.importMocked("@/lib/auth")).auth;
-    const permissions = vi.mocked(await vi.importMocked("@/lib/auth/permissions"));
-    mockHasPermission = permissions.hasPermission;
-    mockHasAllPermissions = permissions.hasAllPermissions;
-    mockHasAnyPermission = permissions.hasAnyPermission;
+  beforeEach(async () => {
+    const authModule = await import("@/lib/auth");
+    const permissionsModule = await import("@/lib/auth/permissions");
+
+    mockAuth = vi.mocked(authModule.auth);
+    mockHasPermission = vi.mocked(permissionsModule.hasPermission);
+    mockHasAllPermissions = vi.mocked(permissionsModule.hasAllPermissions);
+    mockHasAnyPermission = vi.mocked(permissionsModule.hasAnyPermission);
 
     // Reset all mocks
     vi.clearAllMocks();

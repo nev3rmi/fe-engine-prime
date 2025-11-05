@@ -24,8 +24,7 @@ export const createMockSocket = (): Partial<Socket> => ({
 
 // Mock Socket.io client
 export const mockSocketIoClient = (socket: Partial<Socket> = createMockSocket()) => {
-  const { io } = vi.mocked(await vi.importMocked("socket.io-client"));
-  io.mockReturnValue(socket as Socket);
+  // Simply return the socket - actual mocking should be done in test setup
   return socket;
 };
 

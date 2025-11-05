@@ -13,9 +13,10 @@ describe("useChat Hook", () => {
   let mockSocket: any;
   let mockUseRealtime: any;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     mockSocket = createMockSocket();
-    mockUseRealtime = vi.mocked(await vi.importMocked("@/lib/hooks/use-realtime")).useRealtime;
+    const realtimeModule = await import("@/lib/hooks/use-realtime");
+    mockUseRealtime = vi.mocked(realtimeModule.useRealtime);
 
     mockUseRealtime.mockReturnValue({
       socket: mockSocket,

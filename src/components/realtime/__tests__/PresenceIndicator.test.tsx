@@ -26,8 +26,9 @@ describe("Presence Indicator Components", () => {
   });
 
   describe("PresenceBadge", () => {
-    it("should render online status correctly", () => {
-      const { useUserPresence } = vi.mocked(await vi.importMocked("@/lib/hooks/use-presence"));
+    it("should render online status correctly", async () => {
+      const presenceModule = await import("@/lib/hooks/use-presence");
+      const useUserPresence = vi.mocked(presenceModule.useUserPresence);
       useUserPresence.mockReturnValue({
         status: "online",
         lastSeen: null,
@@ -41,8 +42,9 @@ describe("Presence Indicator Components", () => {
       expect(badge).toHaveClass("bg-green-500");
     });
 
-    it("should render offline status correctly", () => {
-      const { useUserPresence } = vi.mocked(await vi.importMocked("@/lib/hooks/use-presence"));
+    it("should render offline status correctly", async () => {
+      const presenceModule = await import("@/lib/hooks/use-presence");
+      const useUserPresence = vi.mocked(presenceModule.useUserPresence);
       useUserPresence.mockReturnValue({
         status: "offline",
         lastSeen: new Date().toISOString(),
@@ -56,8 +58,9 @@ describe("Presence Indicator Components", () => {
       expect(badge).toHaveClass("bg-gray-400");
     });
 
-    it("should render away status correctly", () => {
-      const { useUserPresence } = vi.mocked(await vi.importMocked("@/lib/hooks/use-presence"));
+    it("should render away status correctly", async () => {
+      const presenceModule = await import("@/lib/hooks/use-presence");
+      const useUserPresence = vi.mocked(presenceModule.useUserPresence);
       useUserPresence.mockReturnValue({
         status: "away",
         lastSeen: new Date().toISOString(),
@@ -72,7 +75,8 @@ describe("Presence Indicator Components", () => {
     });
 
     it("should show tooltip with status information", async () => {
-      const { useUserPresence } = vi.mocked(await vi.importMocked("@/lib/hooks/use-presence"));
+      const presenceModule = await import("@/lib/hooks/use-presence");
+      const useUserPresence = vi.mocked(presenceModule.useUserPresence);
       useUserPresence.mockReturnValue({
         status: "online",
         lastSeen: null,
@@ -97,8 +101,9 @@ describe("Presence Indicator Components", () => {
       email: "test@example.com",
     };
 
-    it("should render user avatar with presence indicator", () => {
-      const { useUserPresence } = vi.mocked(await vi.importMocked("@/lib/hooks/use-presence"));
+    it("should render user avatar with presence indicator", async () => {
+      const presenceModule = await import("@/lib/hooks/use-presence");
+      const useUserPresence = vi.mocked(presenceModule.useUserPresence);
       useUserPresence.mockReturnValue({
         status: "online",
         lastSeen: null,
@@ -111,8 +116,9 @@ describe("Presence Indicator Components", () => {
       expect(screen.getByTestId("presence-badge")).toBeInTheDocument();
     });
 
-    it("should handle missing user image gracefully", () => {
-      const { useUserPresence } = vi.mocked(await vi.importMocked("@/lib/hooks/use-presence"));
+    it("should handle missing user image gracefully", async () => {
+      const presenceModule = await import("@/lib/hooks/use-presence");
+      const useUserPresence = vi.mocked(presenceModule.useUserPresence);
       useUserPresence.mockReturnValue({
         status: "online",
         lastSeen: null,
@@ -125,8 +131,9 @@ describe("Presence Indicator Components", () => {
       expect(screen.getByText("TU")).toBeInTheDocument();
     });
 
-    it("should support different sizes", () => {
-      const { useUserPresence } = vi.mocked(await vi.importMocked("@/lib/hooks/use-presence"));
+    it("should support different sizes", async () => {
+      const presenceModule = await import("@/lib/hooks/use-presence");
+      const useUserPresence = vi.mocked(presenceModule.useUserPresence);
       useUserPresence.mockReturnValue({
         status: "online",
         lastSeen: null,
@@ -147,8 +154,9 @@ describe("Presence Indicator Components", () => {
       { id: "3", name: "User 3", image: "https://example.com/3.jpg", status: "online" },
     ];
 
-    it("should render list of online users", () => {
-      const { usePresence } = vi.mocked(await vi.importMocked("@/lib/hooks/use-presence"));
+    it("should render list of online users", async () => {
+      const presenceModule = await import("@/lib/hooks/use-presence");
+      const usePresence = vi.mocked(presenceModule.usePresence);
       usePresence.mockReturnValue({
         onlineUsers: mockOnlineUsers,
         userCount: 3,
@@ -164,8 +172,9 @@ describe("Presence Indicator Components", () => {
       expect(screen.getByText("User 3")).toBeInTheDocument();
     });
 
-    it("should show empty state when no users online", () => {
-      const { usePresence } = vi.mocked(await vi.importMocked("@/lib/hooks/use-presence"));
+    it("should show empty state when no users online", async () => {
+      const presenceModule = await import("@/lib/hooks/use-presence");
+      const usePresence = vi.mocked(presenceModule.usePresence);
       usePresence.mockReturnValue({
         onlineUsers: [],
         userCount: 0,
@@ -179,8 +188,9 @@ describe("Presence Indicator Components", () => {
       expect(screen.getByText("No users online")).toBeInTheDocument();
     });
 
-    it("should limit displayed users when maxUsers prop is set", () => {
-      const { usePresence } = vi.mocked(await vi.importMocked("@/lib/hooks/use-presence"));
+    it("should limit displayed users when maxUsers prop is set", async () => {
+      const presenceModule = await import("@/lib/hooks/use-presence");
+      const usePresence = vi.mocked(presenceModule.usePresence);
       usePresence.mockReturnValue({
         onlineUsers: mockOnlineUsers,
         userCount: 3,
@@ -195,9 +205,10 @@ describe("Presence Indicator Components", () => {
       expect(screen.getByText("+1 more")).toBeInTheDocument();
     });
 
-    it("should handle user click events", () => {
+    it("should handle user click events", async () => {
       const onUserClick = vi.fn();
-      const { usePresence } = vi.mocked(await vi.importMocked("@/lib/hooks/use-presence"));
+      const presenceModule = await import("@/lib/hooks/use-presence");
+      const usePresence = vi.mocked(presenceModule.usePresence);
       usePresence.mockReturnValue({
         onlineUsers: [mockOnlineUsers[0]],
         userCount: 1,
@@ -215,13 +226,12 @@ describe("Presence Indicator Components", () => {
   });
 
   describe("PresenceCard", () => {
-    it("should render complete presence information", () => {
-      const { usePresence, useRealtime } = vi.mocked(
-        await vi.importMocked("@/lib/hooks/use-presence")
-      );
-      const { useRealtime: mockUseRealtime } = vi.mocked(
-        await vi.importMocked("@/lib/hooks/use-realtime")
-      );
+    it("should render complete presence information", async () => {
+      const presenceModule = await import("@/lib/hooks/use-presence");
+      const realtimeModule = await import("@/lib/hooks/use-realtime");
+
+      const usePresence = vi.mocked(presenceModule.usePresence);
+      const mockUseRealtime = vi.mocked(realtimeModule.useRealtime);
 
       usePresence.mockReturnValue({
         onlineUsers: [
@@ -251,8 +261,9 @@ describe("Presence Indicator Components", () => {
       expect(screen.getByText("2 users online")).toBeInTheDocument();
     });
 
-    it("should show connection status", () => {
-      const { useRealtime } = vi.mocked(await vi.importMocked("@/lib/hooks/use-realtime"));
+    it("should show connection status", async () => {
+      const realtimeModule = await import("@/lib/hooks/use-realtime");
+      const useRealtime = vi.mocked(realtimeModule.useRealtime);
 
       useRealtime.mockReturnValue({
         socket: createMockSocket(),
@@ -266,7 +277,8 @@ describe("Presence Indicator Components", () => {
         off: vi.fn(),
       });
 
-      const { usePresence } = vi.mocked(await vi.importMocked("@/lib/hooks/use-presence"));
+      const presenceModule = await import("@/lib/hooks/use-presence");
+      const usePresence = vi.mocked(presenceModule.usePresence);
       usePresence.mockReturnValue({
         onlineUsers: [],
         userCount: 0,
@@ -281,7 +293,8 @@ describe("Presence Indicator Components", () => {
 
     it("should handle presence updates", async () => {
       const mockUpdatePresence = vi.fn();
-      const { usePresence } = vi.mocked(await vi.importMocked("@/lib/hooks/use-presence"));
+      const presenceModule = await import("@/lib/hooks/use-presence");
+      const usePresence = vi.mocked(presenceModule.usePresence);
 
       usePresence.mockReturnValue({
         onlineUsers: [],
@@ -290,7 +303,8 @@ describe("Presence Indicator Components", () => {
         updatePresence: mockUpdatePresence,
       });
 
-      const { useRealtime } = vi.mocked(await vi.importMocked("@/lib/hooks/use-realtime"));
+      const realtimeModule = await import("@/lib/hooks/use-realtime");
+      const useRealtime = vi.mocked(realtimeModule.useRealtime);
       useRealtime.mockReturnValue({
         socket: createMockSocket(),
         isConnected: true,
@@ -318,7 +332,8 @@ describe("Presence Indicator Components", () => {
   describe("Socket Integration", () => {
     it("should handle socket events correctly", async () => {
       const mockSocket = createMockSocket();
-      const { useRealtime } = vi.mocked(await vi.importMocked("@/lib/hooks/use-realtime"));
+      const realtimeModule = await import("@/lib/hooks/use-realtime");
+      const useRealtime = vi.mocked(realtimeModule.useRealtime);
 
       useRealtime.mockReturnValue({
         socket: mockSocket,
@@ -332,7 +347,8 @@ describe("Presence Indicator Components", () => {
         off: vi.fn(),
       });
 
-      const { usePresence } = vi.mocked(await vi.importMocked("@/lib/hooks/use-presence"));
+      const presenceModule = await import("@/lib/hooks/use-presence");
+      const usePresence = vi.mocked(presenceModule.usePresence);
       usePresence.mockReturnValue({
         onlineUsers: [],
         userCount: 0,
