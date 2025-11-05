@@ -78,14 +78,21 @@ describe("WelcomeMessage", () => {
     it("should display time-based greeting", () => {
       render(<WelcomeMessage />);
 
-      // Should have one of the greetings
+      // Should have one of the possible greetings (component has multiple variations)
       const text = screen.getByText(/john doe/i).textContent;
       const hasGreeting =
         text?.includes("Good morning") ||
+        text?.includes("Rise and shine") ||
+        text?.includes("Top of the morning") ||
         text?.includes("Good afternoon") ||
+        text?.includes("Howdy") ||
+        text?.includes("Good day") ||
         text?.includes("Good evening") ||
+        text?.includes("Good night") ||
+        text?.includes("Evening") ||
         text?.includes("Hello") ||
-        text?.includes("Welcome back");
+        text?.includes("Welcome back") ||
+        text?.includes("Hey there");
 
       expect(hasGreeting).toBe(true);
     });
@@ -263,11 +270,14 @@ describe("WelcomeMessage", () => {
 
       render(<WelcomeMessage />);
 
-      // Should default to "User" in the greeting
-      const greeting = screen.getByText(
-        /good morning|good afternoon|good evening|hello|welcome back/i
+      // Should default to "User" in the greeting (component has multiple greeting variations)
+      // Use getAllByText since multiple elements may match the pattern (heading + badge)
+      const greetings = screen.getAllByText(
+        /good morning|rise and shine|top of the morning|good afternoon|howdy|good day|good evening|good night|evening|hello|welcome back|hey there/i
       );
-      expect(greeting.textContent).toContain("User");
+      // Find the heading element (h2)
+      const heading = greetings.find(el => el.tagName === "H2");
+      expect(heading?.textContent).toContain("User");
     });
 
     it("should apply custom className", () => {
