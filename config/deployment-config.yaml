@@ -1,0 +1,49 @@
+# Deployment Configuration
+# FE-475: Configure Staging Environment for Automated Deployment
+
+# Platform: Vercel
+platform: vercel
+
+# Environment Configurations
+environments:
+  development:
+    url: http://localhost:3000
+    branch: develop
+    auto_deploy: false
+
+  staging:
+    # Configuration loaded from config/environments/staging.yaml
+    branch: develop
+    auto_deploy: true
+    health_check_enabled: true
+    health_check_endpoint: /api/health
+    health_check_timeout: 30
+
+  production:
+    # Configuration loaded from config/environments/production.yaml
+    branch: main
+    auto_deploy: false # Manual approval required
+    health_check_enabled: true
+    health_check_endpoint: /api/health
+    health_check_timeout: 30
+    rollback_enabled: true
+
+# Deployment Settings
+deployment:
+  build_command: pnpm build
+  install_command: pnpm install
+  output_directory: .next
+  node_version: 20.x
+
+# Health Check Settings
+health_check:
+  retry_attempts: 3
+  retry_delay: 10
+  expected_status: 200
+  timeout: 30
+
+# Rollback Settings
+rollback:
+  auto_rollback_enabled: true
+  health_check_failures_threshold: 3
+  notification_enabled: true

@@ -1,0 +1,184 @@
+# Staging Environment Configuration
+# FE-475: Configure Staging Environment for Automated Deployment
+# FE-557: Create staging environment configuration file
+
+# Environment Metadata
+environment: staging
+name: FE Engine Prime - Staging
+description: Staging environment for pre-production testing and validation
+
+# Vercel Configuration
+vercel:
+  project_name: fe-engine-prime
+  team_slug: "" # Add your Vercel team slug if applicable
+  framework: nextjs
+  build_command: pnpm build
+  install_command: pnpm install
+  output_directory: .next
+
+# Domain Configuration
+domain:
+  # Vercel will automatically provide a staging URL
+  # Format: fe-engine-prime-git-develop-[team].vercel.app
+  primary: "" # To be configured after Vercel deployment
+  custom_domain: "" # Optional: staging.yourdomain.com
+  ssl_enabled: true
+
+# Git Integration
+git:
+  branch: develop
+  auto_deploy: true
+  deployment_protection: false # No protection on staging
+  preview_deployments: true
+
+# Environment Variables
+# Note: Actual values should be configured in Vercel dashboard
+# This section documents required variables
+environment_variables:
+  # Node.js
+  - name: NODE_ENV
+    value: staging
+    required: true
+
+  # Next.js
+  - name: NEXT_PUBLIC_APP_URL
+    value: "" # Set to Vercel staging URL after deployment
+    required: true
+
+  - name: NEXT_PUBLIC_API_URL
+    value: "" # Set to staging API URL
+    required: false
+
+  # NextAuth.js
+  - name: NEXTAUTH_URL
+    value: "" # Set to Vercel staging URL
+    required: true
+
+  - name: NEXTAUTH_SECRET
+    value: "" # Generate: openssl rand -base64 32
+    required: true
+    sensitive: true
+
+  # OAuth Providers (Optional for staging)
+  - name: GITHUB_CLIENT_ID
+    value: ""
+    required: false
+    sensitive: false
+
+  - name: GITHUB_CLIENT_SECRET
+    value: ""
+    required: false
+    sensitive: true
+
+  - name: GOOGLE_CLIENT_ID
+    value: ""
+    required: false
+    sensitive: false
+
+  - name: GOOGLE_CLIENT_SECRET
+    value: ""
+    required: false
+    sensitive: true
+
+  - name: DISCORD_CLIENT_ID
+    value: ""
+    required: false
+    sensitive: false
+
+  - name: DISCORD_CLIENT_SECRET
+    value: ""
+    required: false
+    sensitive: true
+
+  # Database (if applicable)
+  - name: DATABASE_URL
+    value: "" # Staging database connection string
+    required: false
+    sensitive: true
+
+  # Socket.io (if needed)
+  - name: SOCKET_URL
+    value: ""
+    required: false
+
+# Health Check Configuration
+health_check:
+  enabled: true
+  endpoint: /api/health
+  method: GET
+  expected_status: 200
+  timeout: 30
+  retry_attempts: 3
+  retry_delay: 10
+
+# Monitoring
+monitoring:
+  vercel_analytics: true
+  vercel_speed_insights: true
+  error_reporting: true
+
+# Performance
+performance:
+  edge_functions: true
+  image_optimization: true
+  automatic_compression: true
+
+# Security
+security:
+  headers:
+    x_frame_options: DENY
+    x_content_type_options: nosniff
+    x_xss_protection: "1; mode=block"
+  cors:
+    allowed_origins:
+      - "" # Add staging frontend URL
+    allowed_methods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+
+# Build Configuration
+build:
+  node_version: 20.x
+  install_command: pnpm install --frozen-lockfile
+  build_command: pnpm build
+  output_directory: .next
+  cache_enabled: true
+
+# Deployment Settings
+deployment:
+  auto_deploy_on_push: true
+  branch_protection: false
+  require_approval: false
+  rollback_enabled: true
+  health_check_after_deploy: true
+
+# Feature Flags (for staging testing)
+features:
+  enable_debug_mode: true
+  enable_verbose_logging: true
+  enable_source_maps: true
+  enable_dev_tools: true
+
+# Notes
+notes: |
+  Staging environment configuration for FE Engine Prime.
+
+  Setup Instructions:
+  1. Connect GitHub repository to Vercel
+  2. Configure environment variables in Vercel dashboard
+  3. Set up custom domain (optional)
+  4. Enable automatic deployments from develop branch
+  5. Configure health check monitoring
+
+  Post-Deployment:
+  - Update NEXT_PUBLIC_APP_URL with actual Vercel URL
+  - Update NEXTAUTH_URL with actual Vercel URL
+  - Test health check endpoint: curl https://[staging-url]/api/health
+  - Verify automatic deployments work
+
+  Related Issues:
+  - FE-475: Configure Staging Environment for Automated Deployment
+  - FE-557: Create staging environment configuration file
