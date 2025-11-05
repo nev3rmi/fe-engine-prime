@@ -128,21 +128,24 @@ jobs:
   # End-to-End Tests
   # Cost optimization: Only run E2E tests on:
   # 1. Epic commits (commit message contains [epic] or epic:)
-  # 2. Merges to main branch (production deployment)
+  # 2. Explicit E2E test requests (commit message contains [e2e])
   # 3. Manual workflow dispatch
+  # Use [skip-e2e] to explicitly skip (e.g., during lorem ipsum development)
   e2e-tests:
     name: E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # Skip E2E tests unless:
     # - Commit message has [epic] tag OR
-    # - Branch is main (production) OR
+    # - Commit message has [e2e] tag OR
     # - Manually triggered
+    # TODO: FE-607 - Re-enable main branch E2E when auth implemented
     if: |
-      contains(github.event.head_commit.message, '[epic]') ||
-      contains(github.event.head_commit.message, 'epic:') ||
-      github.ref == 'refs/heads/main' ||
-      github.event_name == 'workflow_dispatch'
+      (contains(github.event.head_commit.message, '[epic]') ||
+       contains(github.event.head_commit.message, 'epic:') ||
+       contains(github.event.head_commit.message, '[e2e]') ||
+       github.event_name == 'workflow_dispatch') &&
+      !contains(github.event.head_commit.message, '[skip-e2e]')
 
     steps:
       - name: Checkout code
