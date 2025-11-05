@@ -85,10 +85,8 @@ jobs:
         run: pnpm run test:run
         env:
           CI: true
-        continue-on-error: true
 
       - name: Generate coverage report
-        continue-on-error: true
         run: pnpm run test:coverage
 
       - name: Upload coverage to Codecov
@@ -98,16 +96,26 @@ jobs:
           file: ./coverage/lcov.info
           fail_ci_if_error: false
 
-      - name: Coverage gate check
-        continue-on-error: true
+      - name: Coverage gate check (BLOCKING)
         run: |
-          COVERAGE=$(npm run test:coverage --silent | grep -oP 'Lines.*?(\d+\.?\d*)%' | grep -oP '\d+\.?\d*')
-          echo "Coverage: ${COVERAGE}%"
-          if (( $(echo "$COVERAGE < 90" | bc -l) )); then
-            echo "❌ Coverage ${COVERAGE}% is below 90% threshold"
-            exit 1
+          echo "::group::Coverage Gate Check"
+          echo "Checking coverage thresholds:"
+          echo "  - Branches: 85%"
+          echo "  - Functions: 90%"
+          echo "  - Lines: 90%"
+          echo "  - Statements: 90%"
+          echo "::endgroup::"
+
+          # Coverage thresholds are enforced by vitest.config.mts
+          # If coverage is below thresholds, test:coverage will fail
+          # This step serves as documentation and explicit gate
+
+          if [ -f coverage/coverage-summary.json ]; then
+            echo "✅ Coverage report generated successfully"
+            echo "Coverage meets all thresholds (enforced by Vitest)"
           else
-            echo "✅ Coverage ${COVERAGE}% meets 90% threshold"
+            echo "❌ Coverage report not found"
+            exit 1
           fi
 
   # End-to-End Tests
@@ -268,17 +276,30 @@ jobs:
         run: pnpm run test:security
         continue-on-error: true
 
-      - name: Run dependency vulnerability scan
-        run: pnpm audit --audit-level=moderate
-        continue-on-error: true
+      - name: Run dependency vulnerability scan (BLOCKING for HIGH/CRITICAL)
+        run: |
+          echo "::group::Dependency Vulnerability Scan"
+          echo "Scanning for HIGH and CRITICAL vulnerabilities..."
+          echo "::endgroup::"
+
+          # Fail on HIGH or CRITICAL vulnerabilities
+          pnpm audit --audit-level=high || {
+            echo "::error::HIGH or CRITICAL vulnerabilities found!"
+            echo "Run 'pnpm audit' locally to see details and fix vulnerabilities"
+            exit 1
+          }
+
+          echo "✅ No HIGH or CRITICAL vulnerabilities found"
 
       - name: Run OWASP dependency check
+        id: owasp-check
         continue-on-error: true
         uses: dependency-check/Dependency-Check_Action@main
         with:
           project: "FE-Engine-Prime"
           path: "."
           format: "HTML"
+          failOnCVSS: 7
 
       - name: Upload OWASP report
         continue-on-error: true
@@ -289,7 +310,16 @@ jobs:
           path: reports/
           retention-days: 7
 
-  # Build Validation
+      - name: OWASP gate check (BLOCKING for CVSS >= 7.0)
+        if: steps.owasp-check.outcome == 'failure'
+        run: |
+          echo "::error::OWASP Dependency Check found vulnerabilities with CVSS >= 7.0"
+          echo "Review the OWASP report artifact for details"
+          echo "HIGH severity (CVSS 7.0-8.9) or CRITICAL (CVSS 9.0-10.0) vulnerabilities must be fixed"
+          exit 1
+
+  # Build Validation (BLOCKING)
+  # Ensures application builds successfully on supported Node versions
   build-validation:
     name: Build Validation
     runs-on: ubuntu-latest
@@ -308,7 +338,7 @@ jobs:
         with:
           version: 9
 
-      - name: Setup Node.js
+      - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
@@ -317,8 +347,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build application
-        run: pnpm run build
+      - name: Build application (BLOCKING)
+        run: |
+          echo "::group::Building for Node ${{ matrix.node-version }}"
+          pnpm run build
+          echo "::endgroup::"
+
+          echo "✅ Build successful for Node ${{ matrix.node-version }}"
 
       - name: Check build artifacts
         run: |
@@ -409,28 +444,65 @@ jobs:
           echo "| Build | $([[ $BUILD == 'success' ]] && echo '✅ PASS' || echo '❌ FAIL') |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Overall result - Only require critical gates to pass
-          # Critical: Build Validation (E2E tests optional due to flakiness)
-          # Non-blocking: Code Quality, Unit Tests, Performance, Security, E2E (all have continue-on-error or are flaky)
-          if [[ $BUILD == 'success' ]]; then
-            echo "### 🎉 Critical Quality Gates PASSED!" >> $GITHUB_STEP_SUMMARY
-            echo "Build validation successful - code is ready for deployment." >> $GITHUB_STEP_SUMMARY
+          # Overall result - Require critical gates to pass
+          # BLOCKING GATES (must pass):
+          # - Build Validation (Node 20 & 22)
+          # - Unit Tests & Coverage (85%/90% thresholds)
+          # - Security (HIGH/CRITICAL vulnerabilities)
+          # OPTIONAL GATES:
+          # - E2E Tests (runs on epic/main/manual)
+          # - Performance Tests (monitoring only)
+
+          CRITICAL_FAILED=false
+
+          if [[ $BUILD != 'success' ]]; then
+            echo "❌ CRITICAL: Build Validation FAILED" >> $GITHUB_STEP_SUMMARY
+            CRITICAL_FAILED=true
+          fi
+
+          if [[ $UNIT_TESTS != 'success' ]]; then
+            echo "❌ CRITICAL: Unit Tests or Coverage FAILED" >> $GITHUB_STEP_SUMMARY
+            CRITICAL_FAILED=true
+          fi
+
+          if [[ $SECURITY != 'success' ]]; then
+            echo "❌ CRITICAL: Security checks FAILED (HIGH/CRITICAL vulnerabilities found)" >> $GITHUB_STEP_SUMMARY
+            CRITICAL_FAILED=true
+          fi
+
+          if [[ $CRITICAL_FAILED == 'false' ]]; then
+            echo "### 🎉 All Critical Quality Gates PASSED!" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**BLOCKING Gates (all passed):**" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Build Validation" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Unit Tests & Coverage (≥85%/90%)" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Security (no HIGH/CRITICAL vulnerabilities)" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
 
-            # Provide status summary
+            # Provide status summary for optional gates
             if [[ $E2E_TESTS == 'success' ]]; then
-              echo "✅ E2E Tests: PASSED" >> $GITHUB_STEP_SUMMARY
+              echo "**Optional Gates:**" >> $GITHUB_STEP_SUMMARY
+              echo "- ✅ E2E Tests: PASSED" >> $GITHUB_STEP_SUMMARY
             elif [[ $E2E_TESTS == 'skipped' ]]; then
-              echo "⏭️  E2E Tests: SKIPPED (cost optimization - runs on epic commits, main branch, or manual trigger)" >> $GITHUB_STEP_SUMMARY
+              echo "**Optional Gates:**" >> $GITHUB_STEP_SUMMARY
+              echo "- ⏭️ E2E Tests: SKIPPED (cost optimization - runs on epic commits, main branch, or manual trigger)" >> $GITHUB_STEP_SUMMARY
             else
-              echo "⚠️  E2E Tests: $E2E_TESTS (non-blocking)" >> $GITHUB_STEP_SUMMARY
+              echo "**Optional Gates:**" >> $GITHUB_STEP_SUMMARY
+              echo "- ⚠️  E2E Tests: $E2E_TESTS (non-blocking)" >> $GITHUB_STEP_SUMMARY
             fi
 
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Note: Non-critical checks (lint, unit tests, security) may have warnings - review and address in future work." >> $GITHUB_STEP_SUMMARY
+            echo "✅ **Code is ready for deployment**" >> $GITHUB_STEP_SUMMARY
           else
             echo "### ❌ Critical Quality Gates FAILED!" >> $GITHUB_STEP_SUMMARY
-            echo "Build Validation must pass before merging." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Required actions before merging:**" >> $GITHUB_STEP_SUMMARY
+            echo "1. Fix all build errors" >> $GITHUB_STEP_SUMMARY
+            echo "2. Ensure unit tests pass" >> $GITHUB_STEP_SUMMARY
+            echo "3. Meet coverage thresholds (85% branches, 90% functions/lines/statements)" >> $GITHUB_STEP_SUMMARY
+            echo "4. Fix all HIGH/CRITICAL security vulnerabilities" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🚫 **Cannot merge until critical gates pass**" >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
 
